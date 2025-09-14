@@ -34,7 +34,7 @@ class RedditApi(
     
     private suspend fun ensureValidToken() {
         // Check if we have a valid access token
-        val accessToken = com.rookie.code.substream.data.api.SessionManager.getAccessToken()
+        val accessToken = com.rookie.code.substream.data.api.NetworkSessionManager.getAccessToken()
         println("RedditApi: Current access token: ${accessToken?.take(10)}...")
         
         if (accessToken.isNullOrEmpty()) {

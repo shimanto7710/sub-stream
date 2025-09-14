@@ -7,7 +7,7 @@ import android.content.SharedPreferences
  * Manages Reddit API session tokens using SharedPreferences
  * Similar to the example's SessionManager pattern
  */
-object SessionManager {
+object NetworkSessionManager {
     
     private const val PREFS_NAME = "reddit_session"
     private const val KEY_ACCESS_TOKEN = "access_token"

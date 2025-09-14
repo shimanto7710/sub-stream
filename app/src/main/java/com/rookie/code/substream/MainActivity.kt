@@ -10,18 +10,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
-import com.rookie.code.substream.di.initKoin
 import com.rookie.code.substream.presentation.screen.HomeScreen
 import com.rookie.code.substream.ui.theme.SubStreamTheme
-import com.rookie.code.substream.data.ktor.NetworkProfiler
 
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        // Initialize Koin
-        initKoin(this)
         
         enableEdgeToEdge()
         setContent {
@@ -35,7 +30,7 @@ class MainActivity : ComponentActivity() {
                             actions = {
                                 val context = LocalContext.current
                                 TextButton(
-                                    onClick = { NetworkProfiler.openProfiler(context) }
+                                    onClick = { /*NetworkProfiler.openProfiler(context)*/ }
                                 ) {
                                     Text("Profiler")
                                 }

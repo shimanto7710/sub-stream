@@ -2,7 +2,7 @@ package com.rookie.code.substream.data.ktor
 
 import android.content.Context
 import com.rookie.code.substream.data.api.ResultRefreshToken
-import com.rookie.code.substream.data.api.SessionManager
+import com.rookie.code.substream.data.api.NetworkSessionManager
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.call.body
@@ -65,12 +65,12 @@ object KtorClient {
         isDebug: Boolean = true
     ): HttpClient {
         // Initialize SessionManager
-        SessionManager.initialize(context)
+        NetworkSessionManager.initialize(context)
         
         // Initialize refresh token for automatic auth
-        SessionManager.updateSession("", ApiConfig.REFRESH_TOKEN, 0)
+        NetworkSessionManager.updateSession("", ApiConfig.REFRESH_TOKEN, 0)
         
-        log("createRedditClientSync: accessToken=${SessionManager.getAccessToken()?.take(10)}..., refreshToken=${SessionManager.getRefreshToken()?.take(10)}...")
+        log("createRedditClientSync: accessToken=${NetworkSessionManager.getAccessToken()?.take(10)}..., refreshToken=${NetworkSessionManager.getRefreshToken()?.take(10)}...")
         
         // The Ktor Auth plugin will handle token refresh automatically
         // when it receives a 401 response
@@ -115,8 +115,8 @@ object KtorClient {
                 bearer {
                     loadTokens {
                         // Load existing tokens from storage
-                        val accessToken = SessionManager.getAccessToken()
-                        val refreshToken = SessionManager.getRefreshToken()
+                        val accessToken = NetworkSessionManager.getAccessToken()
+                        val refreshToken = NetworkSessionManager.getRefreshToken()
                         log("loadTokens: accessToken=${accessToken?.take(10)}..., refreshToken=${refreshToken?.take(10)}...")
                         BearerTokens(accessToken ?: "", refreshToken ?: "")
                     }
@@ -132,8 +132,8 @@ object KtorClient {
                             val result = refreshToken(OkHttp.create { preconfigured = okHttpClient })
                             log("refreshTokens inside mutex: $result")
                             if (result.isSuccess) {
-                                val newAccess = SessionManager.getAccessToken()
-                                val newRefresh = SessionManager.getRefreshToken()
+                                val newAccess = NetworkSessionManager.getAccessToken()
+                                val newRefresh = NetworkSessionManager.getRefreshToken()
                                 log("refreshTokens: newAccess=${newAccess?.take(10)}..., newRefresh=${newRefresh?.take(10)}...")
                                 if (!newAccess.isNullOrEmpty()) {
                                     BearerTokens(newAccess, newRefresh ?: "")
@@ -177,7 +177,7 @@ object KtorClient {
      */
     suspend fun refreshToken(engine: HttpClientEngine): ResultRefreshToken {
         log("refreshToken called")
-        val refreshToken = SessionManager.getRefreshToken() ?: return ResultRefreshToken(
+        val refreshToken = NetworkSessionManager.getRefreshToken() ?: return ResultRefreshToken(
             responseCode = -1,
             isSuccess = false
         )
@@ -215,7 +215,7 @@ object KtorClient {
                 log("refreshToken parsed - accessToken: ${newAccessToken?.take(10)}..., refreshToken: ${newRefreshToken?.take(10)}..., expiresIn: $expiresIn")
 
                 if (!newAccessToken.isNullOrBlank()) {
-                    SessionManager.updateSession(newAccessToken, newRefreshToken, expiresIn)
+                    NetworkSessionManager.updateSession(newAccessToken, newRefreshToken, expiresIn)
                     log("refreshToken: Session updated successfully")
                     ResultRefreshToken(
                         responseCode = response.status.value,
@@ -274,7 +274,7 @@ object KtorClient {
     private fun onTokenRefreshFailed(responseCode: Int) {
         log("onTokenRefreshFailed: $responseCode")
         // Clear session on refresh failure
-        SessionManager.clearSession()
+        NetworkSessionManager.clearSession()
     }
 
     fun log(msg: String?) {
