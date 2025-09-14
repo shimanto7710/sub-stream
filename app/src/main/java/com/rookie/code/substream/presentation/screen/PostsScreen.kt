@@ -72,7 +72,8 @@ fun PostsScreen(
         is PostsViewModel.PostsUiState.Error -> {
             ErrorContent(
                 message = (uiState as PostsViewModel.PostsUiState.Error).message,
-                onRetry = { viewModel.loadPosts(subreddit) }
+                onRetry = { viewModel.loadPosts(subreddit) },
+                onBack = onBack
             )
         }
         is PostsViewModel.PostsUiState.Success -> {
@@ -82,7 +83,8 @@ fun PostsScreen(
             if (videoPosts.isEmpty()) {
                 NoVideosContent(
                     message = "No videos found in r/$subreddit",
-                    onRetry = { viewModel.loadPosts(subreddit) }
+                    onRetry = { viewModel.loadPosts(subreddit) },
+                    onBack = onBack
                 )
             } else {
                 VideoFeedScreen(
@@ -157,6 +159,7 @@ private fun VideoFeedScreen(
 private fun ErrorContent(
     message: String,
     onRetry: () -> Unit,
+    onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -182,8 +185,16 @@ private fun ErrorContent(
         
         Spacer(modifier = Modifier.height(16.dp))
         
-        Button(onClick = onRetry) {
-            Text("Retry")
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Button(onClick = onRetry) {
+                Text("Retry")
+            }
+            
+            OutlinedButton(onClick = onBack) {
+                Text("Back to Search")
+            }
         }
     }
 }
@@ -192,6 +203,7 @@ private fun ErrorContent(
 private fun NoVideosContent(
     message: String,
     onRetry: () -> Unit,
+    onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -228,8 +240,16 @@ private fun NoVideosContent(
         
         Spacer(modifier = Modifier.height(24.dp))
         
-        Button(onClick = onRetry) {
-            Text("Refresh")
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Button(onClick = onRetry) {
+                Text("Refresh")
+            }
+            
+            OutlinedButton(onClick = onBack) {
+                Text("Back to Search")
+            }
         }
     }
 }

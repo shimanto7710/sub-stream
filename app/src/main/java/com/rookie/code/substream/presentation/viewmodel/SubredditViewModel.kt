@@ -13,7 +13,9 @@ data class SubredditUiState(
     val isLoading: Boolean = false,
     val subreddits: List<Subreddit> = emptyList(),
     val error: String? = null,
-    val searchQuery: String = ""
+    val searchQuery: String = "",
+    val isSearching: Boolean = false,
+    val hasSearched: Boolean = false
 )
 
 class SubredditViewModel(
@@ -54,6 +56,11 @@ class SubredditViewModel(
 
     fun searchSubreddits(query: String) {
         if (query.isBlank()) {
+            _uiState.value = _uiState.value.copy(
+                isSearching = false,
+                hasSearched = false,
+                searchQuery = ""
+            )
             loadPopularSubreddits()
             return
         }
@@ -62,21 +69,28 @@ class SubredditViewModel(
             _uiState.value = _uiState.value.copy(
                 isLoading = true, 
                 error = null,
-                searchQuery = query
+                searchQuery = query,
+                isSearching = true,
+                hasSearched = true
             )
             
             when (val result = subredditRepository.searchSubreddits(query, limit = 25)) {
                 is com.rookie.code.substream.data.api.Resource.Success -> {
+                    println("SubredditViewModel: Search successful, found ${result.data.size} subreddits")
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         subreddits = result.data,
-                        error = null
+                        error = null,
+                        isSearching = false,
+                        hasSearched = true  // Ensure hasSearched is set to true
                     )
                 }
                 is com.rookie.code.substream.data.api.Resource.Error -> {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        error = result.exception.message ?: "Failed to search subreddits"
+                        error = result.exception.message ?: "Failed to search subreddits",
+                        isSearching = false,
+                        hasSearched = true  // Even on error, we've attempted a search
                     )
                 }
                 is com.rookie.code.substream.data.api.Resource.Loading -> {

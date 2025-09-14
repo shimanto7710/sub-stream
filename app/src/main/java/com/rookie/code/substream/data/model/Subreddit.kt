@@ -14,7 +14,7 @@ data class Subreddit(
     @SerialName("description")
     val description: String,
     @SerialName("subscribers")
-    val subscribers: Int,
+    val subscribers: Int? = null,
     @SerialName("active_user_count")
     val activeUserCount: Int? = null,
     @SerialName("icon_img")
