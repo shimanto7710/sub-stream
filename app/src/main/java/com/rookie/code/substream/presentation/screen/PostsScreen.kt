@@ -1,5 +1,7 @@
 package com.rookie.code.substream.presentation.screen
 
+import android.content.Context
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -8,7 +10,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -17,10 +21,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.PlayerView
 import com.rookie.code.substream.data.model.RedditPost
 import com.rookie.code.substream.presentation.viewmodel.PostsViewModel
 import java.text.SimpleDateFormat
@@ -34,55 +44,65 @@ fun PostsScreen(
     viewModel: PostsViewModel
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var selectedVideoPost by remember { mutableStateOf<RedditPost?>(null) }
 
     LaunchedEffect(subreddit) {
         viewModel.loadPosts(subreddit)
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "r/$subreddit",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back"
+    // Show full-screen video player if a video is selected
+    if (selectedVideoPost != null) {
+        FullScreenVideoPlayer(
+            post = selectedVideoPost!!,
+            onClose = { selectedVideoPost = null }
+        )
+    } else {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = "r/$subreddit",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
                         )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowBack,
+                                contentDescription = "Back"
+                            )
+                        }
+                    }
+                )
+            }
+        ) { innerPadding ->
+            when (uiState) {
+                is PostsViewModel.PostsUiState.Loading -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
                     }
                 }
-            )
-        }
-    ) { innerPadding ->
-        when (uiState) {
-            is PostsViewModel.PostsUiState.Loading -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
+                is PostsViewModel.PostsUiState.Error -> {
+                    ErrorContent(
+                        message = (uiState as PostsViewModel.PostsUiState.Error).message,
+                        onRetry = { viewModel.loadPosts(subreddit) },
+                        modifier = Modifier.padding(innerPadding)
+                    )
                 }
-            }
-            is PostsViewModel.PostsUiState.Error -> {
-                ErrorContent(
-                    message = (uiState as PostsViewModel.PostsUiState.Error).message,
-                    onRetry = { viewModel.loadPosts(subreddit) },
-                    modifier = Modifier.padding(innerPadding)
-                )
-            }
-            is PostsViewModel.PostsUiState.Success -> {
-                PostsList(
-                    posts = (uiState as PostsViewModel.PostsUiState.Success).posts,
-                    modifier = Modifier.padding(innerPadding)
-                )
+                is PostsViewModel.PostsUiState.Success -> {
+                    PostsList(
+                        posts = (uiState as PostsViewModel.PostsUiState.Success).posts,
+                        onVideoClick = { post -> selectedVideoPost = post },
+                        modifier = Modifier.padding(innerPadding)
+                    )
+                }
             }
         }
     }
@@ -91,6 +111,7 @@ fun PostsScreen(
 @Composable
 private fun PostsList(
     posts: List<RedditPost>,
+    onVideoClick: (RedditPost) -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -99,7 +120,10 @@ private fun PostsList(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         items(posts) { post ->
-            PostCard(post = post)
+            PostCard(
+                post = post,
+                onVideoClick = onVideoClick
+            )
         }
     }
 }
@@ -107,12 +131,19 @@ private fun PostsList(
 @Composable
 private fun PostCard(
     post: RedditPost,
+    onVideoClick: (RedditPost) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .clickable { /* Handle post click */ },
+            .clickable { 
+                if (isVideoPost(post)) {
+                    onVideoClick(post)
+                }
+            },
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
@@ -150,7 +181,7 @@ private fun PostCard(
                 Spacer(modifier = Modifier.width(8.dp))
                 
                 Text(
-                    text = "",
+                    text = formatTime(post.createdUtc),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -158,24 +189,33 @@ private fun PostCard(
             
             Spacer(modifier = Modifier.height(8.dp))
             
-            // Image if available
-            post.thumbnail?.let { thumbnail ->
-                if (thumbnail != "self" && thumbnail != "default" && thumbnail.isNotEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(200.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color.Gray.copy(alpha = 0.3f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "Image: $thumbnail",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+            // Video thumbnail if available
+            if (isVideoPost(post)) {
+                VideoThumbnail(
+                    post = post,
+                    onClick = { onVideoClick(post) }
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            } else {
+                // Image if available
+                post.thumbnail?.let { thumbnail ->
+                    if (thumbnail != "self" && thumbnail != "default" && thumbnail.isNotEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(200.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color.Gray.copy(alpha = 0.3f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Image: $thumbnail",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
                 }
             }
             
@@ -277,6 +317,314 @@ private fun ErrorContent(
         Button(onClick = onRetry) {
             Text("Retry")
         }
+    }
+}
+
+// Video-related composables and functions
+
+@Composable
+private fun FullScreenVideoPlayer(
+    post: RedditPost,
+    onClose: () -> Unit
+) {
+    val context = LocalContext.current
+    var isPlaying by remember { mutableStateOf(true) }
+    var isMuted by remember { mutableStateOf(false) }
+    var showControls by remember { mutableStateOf(true) }
+    
+    // Auto-hide controls after 3 seconds
+    LaunchedEffect(showControls) {
+        if (showControls) {
+            kotlinx.coroutines.delay(3000)
+            showControls = false
+        }
+    }
+    
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+            .clickable { showControls = !showControls }
+    ) {
+        // Video Player
+        VideoPlayer(
+            context = context,
+            post = post,
+            isPlaying = isPlaying,
+            isMuted = isMuted,
+            modifier = Modifier.fillMaxSize()
+        )
+        
+        // Controls overlay
+        if (showControls) {
+            VideoControls(
+                isPlaying = isPlaying,
+                isMuted = isMuted,
+                onPlayPause = { isPlaying = !isPlaying },
+                onMuteToggle = { isMuted = !isMuted },
+                onClose = onClose,
+                post = post
+            )
+        }
+    }
+}
+
+@Composable
+private fun VideoPlayer(
+    context: Context,
+    post: RedditPost,
+    isPlaying: Boolean,
+    isMuted: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val exoPlayer = remember {
+        ExoPlayer.Builder(context).build().apply {
+            val videoUrl = getVideoUrl(post)
+            if (videoUrl != null) {
+                val mediaItem = MediaItem.fromUri(videoUrl)
+                setMediaItem(mediaItem)
+                prepare()
+                playWhenReady = isPlaying
+                volume = if (isMuted) 0f else 1f
+            }
+        }
+    }
+    
+    LaunchedEffect(isPlaying) {
+        exoPlayer.playWhenReady = isPlaying
+    }
+    
+    LaunchedEffect(isMuted) {
+        exoPlayer.volume = if (isMuted) 0f else 1f
+    }
+    
+    DisposableEffect(Unit) {
+        onDispose {
+            exoPlayer.release()
+        }
+    }
+    
+    AndroidView(
+        factory = { context ->
+            PlayerView(context).apply {
+                player = exoPlayer
+                useController = false
+            }
+        },
+        modifier = modifier
+    )
+}
+
+@Composable
+private fun VideoControls(
+    isPlaying: Boolean,
+    isMuted: Boolean,
+    onPlayPause: () -> Unit,
+    onMuteToggle: () -> Unit,
+    onClose: () -> Unit,
+    post: RedditPost
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Color.Black.copy(alpha = 0.3f)
+            )
+    ) {
+        // Top controls
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Close button
+            IconButton(
+                onClick = onClose,
+                modifier = Modifier
+                    .background(
+                        Color.Black.copy(alpha = 0.5f),
+                        RoundedCornerShape(20.dp)
+                    )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Close",
+                    tint = Color.White
+                )
+            }
+            
+            // Mute button
+            IconButton(
+                onClick = onMuteToggle,
+                modifier = Modifier
+                    .background(
+                        Color.Black.copy(alpha = 0.5f),
+                        RoundedCornerShape(20.dp)
+                    )
+            ) {
+                Icon(
+                    imageVector = if (isMuted) Icons.Default.Close else Icons.Default.PlayArrow,
+                    contentDescription = if (isMuted) "Unmute" else "Mute",
+                    tint = Color.White
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.weight(1f))
+        
+        // Center play/pause button
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center
+        ) {
+            IconButton(
+                onClick = onPlayPause,
+                modifier = Modifier
+                    .size(80.dp)
+                    .background(
+                        Color.Black.copy(alpha = 0.5f),
+                        RoundedCornerShape(40.dp)
+                    )
+            ) {
+                Icon(
+                    imageVector = if (isPlaying) Icons.Default.Close else Icons.Default.PlayArrow,
+                    contentDescription = if (isPlaying) "Pause" else "Play",
+                    tint = Color.White,
+                    modifier = Modifier.size(40.dp)
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.weight(1f))
+        
+        // Bottom info
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Text(
+                text = post.title ?: "No title",
+                style = MaterialTheme.typography.titleMedium,
+                color = Color.White,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Text(
+                text = "u/${post.author ?: "unknown"} • r/${post.subreddit ?: "unknown"}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.White.copy(alpha = 0.8f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun VideoThumbnail(
+    post: RedditPost,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(200.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(Color.Black)
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        // Video thumbnail
+        post.thumbnail?.let { thumbnail ->
+            if (thumbnail != "self" && thumbnail != "default" && thumbnail.isNotEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Video Thumbnail",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White
+                    )
+                }
+            }
+        }
+        
+        // Play button overlay
+        Icon(
+            imageVector = Icons.Default.PlayArrow,
+            contentDescription = "Play Video",
+            tint = Color.White,
+            modifier = Modifier
+                .size(60.dp)
+                .background(
+                    Color.Black.copy(alpha = 0.6f),
+                    RoundedCornerShape(30.dp)
+                )
+        )
+    }
+}
+
+// Helper functions
+private fun isVideoPost(post: RedditPost): Boolean {
+    return post.isVideo == true || 
+           post.media?.redditVideo != null || 
+           post.secureMedia?.redditVideo != null ||
+           (post.url?.contains("youtube.com") == true) ||
+           (post.url?.contains("youtu.be") == true) ||
+           (post.url?.endsWith(".mp4") == true) ||
+           (post.url?.endsWith(".webm") == true)
+}
+
+private fun getVideoUrl(post: RedditPost): String? {
+    // Try Reddit video first
+    post.media?.redditVideo?.fallbackUrl?.let { return it }
+    post.secureMedia?.redditVideo?.fallbackUrl?.let { return it }
+    
+    // Try HLS URL
+    post.media?.redditVideo?.hlsUrl?.let { return it }
+    post.secureMedia?.redditVideo?.hlsUrl?.let { return it }
+    
+    // Try DASH URL
+    post.media?.redditVideo?.dashUrl?.let { return it }
+    post.secureMedia?.redditVideo?.dashUrl?.let { return it }
+    
+    // Try direct URL
+    post.url?.let { url ->
+        if (url.endsWith(".mp4") || url.endsWith(".webm")) {
+            return url
+        }
+    }
+    
+    // Handle YouTube URLs
+    post.url?.let { url ->
+        if (url.contains("youtube.com") || url.contains("youtu.be")) {
+            return convertYouTubeToEmbed(url)
+        }
+    }
+    
+    return null
+}
+
+private fun convertYouTubeToEmbed(url: String): String? {
+    return try {
+        val videoId = when {
+            url.contains("youtu.be/") -> {
+                url.substringAfter("youtu.be/").substringBefore("?")
+            }
+            url.contains("youtube.com/watch?v=") -> {
+                url.substringAfter("v=").substringBefore("&")
+            }
+            else -> null
+        }
+        
+        videoId?.let { "https://www.youtube.com/embed/$it?autoplay=1&mute=0&controls=1" }
+    } catch (e: Exception) {
+        null
     }
 }
 
