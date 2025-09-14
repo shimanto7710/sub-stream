@@ -5,4 +5,5 @@ import com.rookie.code.substream.data.model.RedditPost
 
 interface RedditPostsRepository {
     suspend fun getSubredditPosts(subreddit: String, limit: Int = 25): Resource<List<RedditPost>>
+    suspend fun getSubredditPosts(subreddit: String, limit: Int = 25, after: String?): Resource<Pair<List<RedditPost>, String?>>
 }

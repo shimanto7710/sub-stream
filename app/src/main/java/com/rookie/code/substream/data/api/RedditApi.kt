@@ -47,13 +47,14 @@ class RedditApi(
     /**
      * Get hot posts from a subreddit
      */
-    suspend fun getSubredditPosts(subreddit: String, limit: Int = 25): Resource<RedditReelResponse> {
+    suspend fun getSubredditPosts(subreddit: String, limit: Int = 25, after: String? = null): Resource<RedditReelResponse> {
         return safeCall {
             val endpoint = "r/$subreddit/hot.json"
-            println("RedditApi: Calling endpoint: $endpoint")
+            println("RedditApi: Calling endpoint: $endpoint with after: $after")
             client.get(endpoint) {
                 url {
                     parameters.append("limit", limit.toString())
+                    after?.let { parameters.append("after", it) }
                 }
             }
         }

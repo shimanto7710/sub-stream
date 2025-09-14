@@ -20,4 +20,16 @@ class RedditPostsRepositoryImpl(
         }
     }
 
+    override suspend fun getSubredditPosts(subreddit: String, limit: Int, after: String?): Resource<Pair<List<RedditPost>, String?>> {
+        return redditApi.getSubredditPosts(subreddit, limit, after).map { response ->
+            val posts = response.data?.children?.mapNotNull { child ->
+                child?.data?.let { postData ->
+                    postData
+                }
+            } ?: emptyList()
+            val nextAfter = response.data?.after
+            Pair(posts, nextAfter)
+        }
+    }
+
 }

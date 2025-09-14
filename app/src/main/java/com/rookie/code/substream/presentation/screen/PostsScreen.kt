@@ -90,7 +90,8 @@ fun PostsScreen(
                 VideoFeedScreen(
                     posts = videoPosts,
                     subreddit = subreddit,
-                    onBack = onBack
+                    onBack = onBack,
+                    viewModel = viewModel
                 )
             }
         }
@@ -102,7 +103,8 @@ fun PostsScreen(
 private fun VideoFeedScreen(
     posts: List<RedditPost>,
     subreddit: String,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    viewModel: PostsViewModel
 ) {
     var currentVideoIndex by remember { mutableStateOf(0) }
     var isMuted by remember { mutableStateOf(false) } // Global mute state for all videos
@@ -114,6 +116,11 @@ private fun VideoFeedScreen(
     // Sync pager state with current video index
     LaunchedEffect(pagerState.currentPage) {
         currentVideoIndex = pagerState.currentPage
+        
+        // Load more videos when user reaches near the end (last 3 videos)
+        if (currentVideoIndex >= posts.size - 3) {
+            viewModel.loadMorePosts(subreddit)
+        }
     }
     
     Box(modifier = Modifier.fillMaxSize()) {
