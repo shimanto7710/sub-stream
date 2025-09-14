@@ -133,7 +133,7 @@ data class Preview(
 data class PreviewImage(
     val source: ImageSource? = null,
     val resolutions: List<ImageSource>? = null,
-    val variants: Map<String, String>? = null,
+//    val variants: Map<String, String>? = null,
     val id: String? = null
 )
 

@@ -12,7 +12,7 @@ data class Subreddit(
     @SerialName("title")
     val title: String,
     @SerialName("description")
-    val description: String,
+    val description: String?,
     @SerialName("subscribers")
     val subscribers: Int? = null,
     @SerialName("active_user_count")
@@ -22,7 +22,7 @@ data class Subreddit(
     @SerialName("banner_img")
     val bannerUrl: String? = null,
     @SerialName("over18")
-    val isOver18: Boolean = false,
+    val isOver18: Boolean? = false,
     @SerialName("public_description")
     val publicDescription: String? = null
 )
