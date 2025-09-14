@@ -1,7 +1,7 @@
 package com.rookie.code.substream.data.api
 
+import com.rookie.code.substream.data.model.RedditReelResponse
 import com.rookie.code.substream.data.model.SubredditListResponse
-import com.rookie.code.substream.data.model.ReelResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 
@@ -47,9 +47,11 @@ class RedditApi(
     /**
      * Get hot posts from a subreddit
      */
-    suspend fun getSubredditPosts(subreddit: String, limit: Int = 25): Resource<ReelResponse> {
+    suspend fun getSubredditPosts(subreddit: String, limit: Int = 25): Resource<RedditReelResponse> {
         return safeCall {
-            client.get("r/$subreddit/hot") {
+            val endpoint = "r/$subreddit/hot.json"
+            println("RedditApi: Calling endpoint: $endpoint")
+            client.get(endpoint) {
                 url {
                     parameters.append("limit", limit.toString())
                 }

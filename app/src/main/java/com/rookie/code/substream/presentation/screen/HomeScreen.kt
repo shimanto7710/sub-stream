@@ -1,5 +1,6 @@
 package com.rookie.code.substream.presentation.screen
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -19,6 +20,7 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun HomeScreen(
     modifier: Modifier = Modifier,
+    onSubredditClick: (String) -> Unit = {},
     viewModel: SubredditViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -69,7 +71,8 @@ fun HomeScreen(
             else -> {
                 SubredditList(
                     subreddits = uiState.subreddits,
-                    onRefresh = { viewModel.refresh() }
+                    onRefresh = { viewModel.refresh() },
+                    onSubredditClick = onSubredditClick
                 )
             }
         }
@@ -79,23 +82,30 @@ fun HomeScreen(
 @Composable
 private fun SubredditList(
     subreddits: List<Subreddit>,
-    onRefresh: () -> Unit
+    onRefresh: () -> Unit,
+    onSubredditClick: (String) -> Unit
 ) {
     LazyColumn(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         items(subreddits) { subreddit ->
-            SubredditItem(subreddit = subreddit)
+            SubredditItem(
+                subreddit = subreddit,
+                onClick = { onSubredditClick(subreddit.displayName) }
+            )
         }
     }
 }
 
 @Composable
 private fun SubredditItem(
-    subreddit: Subreddit
+    subreddit: Subreddit,
+    onClick: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(

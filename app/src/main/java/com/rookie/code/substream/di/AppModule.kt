@@ -1,22 +1,11 @@
 package com.rookie.code.substream.di
 
-import com.rookie.code.substream.presentation.viewmodel.SubredditViewModel
-import com.rookie.code.substream.presentation.viewmodel.VideoViewModel
 import org.koin.android.ext.koin.androidContext
-import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.core.context.startKoin
 import org.koin.dsl.module
 
 val appModule = module {
-    
-    // ViewModels
-    viewModel {
-        SubredditViewModel(get())
-    }
-    
-    viewModel {
-        VideoViewModel(get())
-    }
+    // ViewModels are defined in viewModelModule
 }
 
 fun initKoin(androidContext: android.content.Context) {
@@ -24,7 +13,8 @@ fun initKoin(androidContext: android.content.Context) {
         androidContext(androidContext)
         modules(
             appModule,
-            networkModule
+            networkModule,
+            viewModelModule
         )
     }
 }

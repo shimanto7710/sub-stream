@@ -3,7 +3,7 @@ package com.rookie.code.substream.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rookie.code.substream.data.api.Resource
-import com.rookie.code.substream.data.model.ReelPost
+import com.rookie.code.substream.data.model.RedditPost
 import com.rookie.code.substream.domain.repository.RedditPostsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -11,11 +11,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 data class VideoUiState(
-    val posts: List<ReelPost> = emptyList(),
+    val posts: List<RedditPost> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
     val isFullscreen: Boolean = false,
-    val currentVideoPost: ReelPost? = null
+    val currentVideoPost: RedditPost? = null
 )
 
 class VideoViewModel(
@@ -50,7 +50,7 @@ class VideoViewModel(
         }
     }
 
-    fun playVideo(post: ReelPost) {
+    fun playVideo(post: RedditPost) {
         _uiState.value = _uiState.value.copy(
             isFullscreen = true,
             currentVideoPost = post

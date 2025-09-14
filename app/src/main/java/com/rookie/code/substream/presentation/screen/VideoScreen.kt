@@ -1,3 +1,4 @@
+/*
 package com.rookie.code.substream.presentation.screen
 
 import android.content.Context
@@ -29,7 +30,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
-import com.rookie.code.substream.data.model.ReelPost
+import com.rookie.code.substream.data.model.RedditPost
 import com.rookie.code.substream.presentation.viewmodel.VideoViewModel
 import org.koin.androidx.compose.koinViewModel
 
@@ -70,10 +71,10 @@ fun VideoScreen(
 
 @Composable
 private fun VideoList(
-    posts: List<ReelPost>,
+    posts: List<RedditPost>,
     isLoading: Boolean,
     error: String?,
-    onVideoClick: (ReelPost) -> Unit,
+    onVideoClick: (RedditPost) -> Unit,
     onRetry: () -> Unit
 ) {
     LazyColumn(
@@ -126,7 +127,7 @@ private fun VideoList(
 
 @Composable
 private fun VideoPostCard(
-    post: ReelPost,
+    post: RedditPost,
     onClick: () -> Unit
 ) {
     Card(
@@ -236,7 +237,7 @@ private fun VideoPostCard(
 
 @Composable
 private fun FullscreenVideoPlayer(
-    post: ReelPost?,
+    post: RedditPost?,
     onExitFullscreen: () -> Unit,
     onVideoEnd: () -> Unit
 ) {
@@ -462,3 +463,4 @@ private fun FullscreenVideoPlayer(
         }
     }
 }
+*/
