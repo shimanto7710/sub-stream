@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -34,6 +35,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
@@ -385,12 +388,44 @@ private fun VideoControls(
                         RoundedCornerShape(40.dp)
                     )
             ) {
-                Icon(
-                    imageVector = if (isPlaying) Icons.Default.Close else Icons.Default.PlayArrow,
-                    contentDescription = if (isPlaying) "Pause" else "Play",
-                    tint = Color.White,
-                    modifier = Modifier.size(40.dp)
-                )
+                if (isPlaying) {
+                    // Custom pause icon (two vertical rectangles)
+                    Canvas(
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        val rectWidth = size.width * 0.25f
+                        val rectHeight = size.height * 0.6f
+                        val spacing = size.width * 0.1f
+                        val startY = (size.height - rectHeight) / 2
+                        
+                        // Left rectangle
+                        drawRect(
+                            color = Color.White,
+                            topLeft = androidx.compose.ui.geometry.Offset(
+                                (size.width - rectWidth * 2 - spacing) / 2,
+                                startY
+                            ),
+                            size = androidx.compose.ui.geometry.Size(rectWidth, rectHeight)
+                        )
+                        
+                        // Right rectangle
+                        drawRect(
+                            color = Color.White,
+                            topLeft = androidx.compose.ui.geometry.Offset(
+                                (size.width - rectWidth * 2 - spacing) / 2 + rectWidth + spacing,
+                                startY
+                            ),
+                            size = androidx.compose.ui.geometry.Size(rectWidth, rectHeight)
+                        )
+                    }
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = "Play",
+                        tint = Color.White,
+                        modifier = Modifier.size(40.dp)
+                    )
+                }
             }
         }
         
