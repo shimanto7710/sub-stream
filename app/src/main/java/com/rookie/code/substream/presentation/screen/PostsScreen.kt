@@ -96,13 +96,24 @@ fun PostsScreen(
                         modifier = Modifier.padding(innerPadding)
                     )
                 }
-                is PostsViewModel.PostsUiState.Success -> {
+            is PostsViewModel.PostsUiState.Success -> {
+                val allPosts = (uiState as PostsViewModel.PostsUiState.Success).posts
+                val videoPosts = allPosts.filter { isVideoPost(it) }
+                
+                if (videoPosts.isEmpty()) {
+                    NoVideosContent(
+                        message = "No videos found in r/$subreddit",
+                        onRetry = { viewModel.loadPosts(subreddit) },
+                        modifier = Modifier.padding(innerPadding)
+                    )
+                } else {
                     PostsList(
-                        posts = (uiState as PostsViewModel.PostsUiState.Success).posts,
+                        posts = videoPosts,
                         onVideoClick = { post -> selectedVideoPost = post },
                         modifier = Modifier.padding(innerPadding)
                     )
                 }
+            }
             }
         }
     }
@@ -119,6 +130,17 @@ private fun PostsList(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        item {
+            // Video count header
+            Text(
+                text = "📹 ${posts.size} Video${if (posts.size == 1) "" else "s"} Found",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+        }
+        
         items(posts) { post ->
             PostCard(
                 post = post,
@@ -139,11 +161,7 @@ private fun PostCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .clickable { 
-                if (isVideoPost(post)) {
-                    onVideoClick(post)
-                }
-            },
+            .clickable { onVideoClick(post) },
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
@@ -189,35 +207,12 @@ private fun PostCard(
             
             Spacer(modifier = Modifier.height(8.dp))
             
-            // Video thumbnail if available
-            if (isVideoPost(post)) {
-                VideoThumbnail(
-                    post = post,
-                    onClick = { onVideoClick(post) }
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-            } else {
-                // Image if available
-                post.thumbnail?.let { thumbnail ->
-                    if (thumbnail != "self" && thumbnail != "default" && thumbnail.isNotEmpty()) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(200.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(Color.Gray.copy(alpha = 0.3f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "Image: $thumbnail",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                    }
-                }
-            }
+            // Video thumbnail (all posts are videos)
+            VideoThumbnail(
+                post = post,
+                onClick = { onVideoClick(post) }
+            )
+            Spacer(modifier = Modifier.height(8.dp))
             
             // Self text if available
             post.selftext?.let { selftext ->
@@ -316,6 +311,52 @@ private fun ErrorContent(
         
         Button(onClick = onRetry) {
             Text("Retry")
+        }
+    }
+}
+
+@Composable
+private fun NoVideosContent(
+    message: String,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "📹 No Videos Found",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        Text(
+            text = "Try a different subreddit that might have more video content!",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
+        
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        Button(onClick = onRetry) {
+            Text("Refresh")
         }
     }
 }

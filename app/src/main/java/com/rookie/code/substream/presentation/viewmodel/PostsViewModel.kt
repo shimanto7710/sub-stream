@@ -22,7 +22,7 @@ class PostsViewModel(
             println("PostsViewModel: Loading posts for subreddit: $subreddit")
             _uiState.value = PostsUiState.Loading
             
-            when (val result = redditPostsRepository.getSubredditPosts(subreddit, 2)) {
+            when (val result = redditPostsRepository.getSubredditPosts(subreddit, 25)) {
                 is Resource.Success -> {
                     println("PostsViewModel: Successfully loaded ${result.data.size} posts for subreddit: $subreddit")
                     _uiState.value = PostsUiState.Success(result.data)
