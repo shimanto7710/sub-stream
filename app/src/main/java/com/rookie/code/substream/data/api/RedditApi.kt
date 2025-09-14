@@ -1,6 +1,7 @@
 package com.rookie.code.substream.data.api
 
 import com.rookie.code.substream.data.model.SubredditListResponse
+import com.rookie.code.substream.data.model.ReelResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 
@@ -38,6 +39,19 @@ class RedditApi(
                     parameters.append("q", query)
                     parameters.append("limit", limit.toString())
                     parameters.append("type", "sr")
+                }
+            }
+        }
+    }
+
+    /**
+     * Get hot posts from a subreddit
+     */
+    suspend fun getSubredditPosts(subreddit: String, limit: Int = 25): Resource<ReelResponse> {
+        return safeCall {
+            client.get("r/$subreddit/hot") {
+                url {
+                    parameters.append("limit", limit.toString())
                 }
             }
         }

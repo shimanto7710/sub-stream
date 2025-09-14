@@ -6,7 +6,9 @@ import com.rookie.code.substream.data.api.RedditAuthApiImpl
 import com.rookie.code.substream.data.api.SessionManager
 import com.rookie.code.substream.data.api.TokenManager
 import com.rookie.code.substream.data.repository.SubredditRepositoryImpl
+import com.rookie.code.substream.data.repository.RedditPostsRepositoryImpl
 import com.rookie.code.substream.domain.repository.SubredditRepository
+import com.rookie.code.substream.domain.repository.RedditPostsRepository
 import com.rookie.code.substream.data.ktor.KtorClient
 import io.ktor.client.HttpClient
 import org.koin.android.ext.koin.androidContext
@@ -50,8 +52,13 @@ val networkModule = module {
         RedditApi(get(qualifier = named("redditClient")))
     }
     
-    // Repository
-    single<SubredditRepository> {
-        SubredditRepositoryImpl(get())
-    }
+                // Repository
+                single<SubredditRepository> {
+                    SubredditRepositoryImpl(get())
+                }
+
+                // Reddit Posts Repository
+                single<RedditPostsRepository> {
+                    RedditPostsRepositoryImpl(get())
+                }
 }
