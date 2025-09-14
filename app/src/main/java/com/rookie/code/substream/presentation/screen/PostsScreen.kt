@@ -105,6 +105,7 @@ private fun VideoFeedScreen(
     onBack: () -> Unit
 ) {
     var currentVideoIndex by remember { mutableStateOf(0) }
+    var isMuted by remember { mutableStateOf(false) } // Global mute state for all videos
     val pagerState = rememberPagerState(
         initialPage = 0,
         pageCount = { posts.size }
@@ -126,6 +127,8 @@ private fun VideoFeedScreen(
                 onClose = onBack,
                 showControls = true,
                 isCurrentVideo = page == currentVideoIndex,
+                isMuted = isMuted,
+                onMuteToggle = { isMuted = !isMuted },
                 modifier = Modifier.fillMaxSize()
             )
         }
@@ -262,11 +265,12 @@ private fun FullScreenVideoPlayer(
     onClose: () -> Unit,
     showControls: Boolean = true,
     isCurrentVideo: Boolean = true,
+    isMuted: Boolean = false,
+    onMuteToggle: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     var isPlaying by remember { mutableStateOf(isCurrentVideo) }
-    var isMuted by remember { mutableStateOf(false) }
     var showVideoControls by remember { mutableStateOf(showControls) }
     
     // Auto-hide controls after 3 seconds
@@ -315,13 +319,38 @@ private fun FullScreenVideoPlayer(
             )
         }
         
+        // Mute/Unmute button (always visible)
+        Button(
+            onClick = { 
+                onMuteToggle()
+                println("FullScreenVideoPlayer: Mute toggled to $isMuted")
+            },
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(16.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color.Black.copy(alpha = 0.7f)
+            ),
+            shape = RoundedCornerShape(20.dp)
+        ) {
+            Text(
+                text = if (isMuted) "🔇 MUTE" else "🔊 UNMUTE",
+                color = Color.White,
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        
         // Controls overlay
         if (showVideoControls) {
             VideoControls(
                 isPlaying = isPlaying,
                 isMuted = isMuted,
-                onPlayPause = { isPlaying = !isPlaying },
-                onMuteToggle = { isMuted = !isMuted },
+                onPlayPause = { 
+                    isPlaying = !isPlaying
+                    println("FullScreenVideoPlayer: Play/Pause toggled to $isPlaying")
+                },
+                onMuteToggle = onMuteToggle,
                 onClose = onClose,
                 post = post
             )
@@ -346,6 +375,7 @@ private fun VideoPlayer(
                 prepare()
                 playWhenReady = isPlaying
                 volume = if (isMuted) 0f else 1f
+                println("VideoPlayer: Initial volume set to ${if (isMuted) 0f else 1f}")
             }
         }
     }
@@ -356,6 +386,7 @@ private fun VideoPlayer(
     
     LaunchedEffect(isMuted) {
         exoPlayer.volume = if (isMuted) 0f else 1f
+        println("VideoPlayer: Volume changed to ${if (isMuted) 0f else 1f}")
     }
     
     DisposableEffect(Unit) {
@@ -487,11 +518,126 @@ private fun VideoControls(
                             RoundedCornerShape(20.dp)
                         )
                 ) {
-                    Icon(
-                        imageVector = if (isMuted) Icons.Default.Close else Icons.Default.PlayArrow,
-                        contentDescription = if (isMuted) "Unmute" else "Mute",
-                        tint = Color.White
-                    )
+                    if (isMuted) {
+                        // Muted icon (speaker with X)
+                        Canvas(
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            val centerX = size.width / 2
+                            val centerY = size.height / 2
+                            val speakerWidth = size.width * 0.4f
+                            val speakerHeight = size.height * 0.6f
+                            
+                            // Speaker cone
+                            drawRect(
+                                color = Color.White,
+                                topLeft = androidx.compose.ui.geometry.Offset(
+                                    centerX - speakerWidth / 2,
+                                    centerY - speakerHeight / 2
+                                ),
+                                size = androidx.compose.ui.geometry.Size(speakerWidth, speakerHeight)
+                            )
+                            
+                            // Speaker handle
+                            drawRect(
+                                color = Color.White,
+                                topLeft = androidx.compose.ui.geometry.Offset(
+                                    centerX - speakerWidth / 2 - size.width * 0.1f,
+                                    centerY - speakerHeight * 0.3f
+                                ),
+                                size = androidx.compose.ui.geometry.Size(size.width * 0.1f, speakerHeight * 0.6f)
+                            )
+                            
+                            // X mark
+                            val strokeWidth = 2.dp.toPx()
+                            drawLine(
+                                color = Color.Red,
+                                start = androidx.compose.ui.geometry.Offset(
+                                    centerX + speakerWidth / 2 + size.width * 0.1f,
+                                    centerY - speakerHeight / 2
+                                ),
+                                end = androidx.compose.ui.geometry.Offset(
+                                    centerX + speakerWidth / 2 + size.width * 0.3f,
+                                    centerY + speakerHeight / 2
+                                ),
+                                strokeWidth = strokeWidth
+                            )
+                            drawLine(
+                                color = Color.Red,
+                                start = androidx.compose.ui.geometry.Offset(
+                                    centerX + speakerWidth / 2 + size.width * 0.3f,
+                                    centerY - speakerHeight / 2
+                                ),
+                                end = androidx.compose.ui.geometry.Offset(
+                                    centerX + speakerWidth / 2 + size.width * 0.1f,
+                                    centerY + speakerHeight / 2
+                                ),
+                                strokeWidth = strokeWidth
+                            )
+                        }
+                    } else {
+                        // Unmuted icon (speaker)
+                        Canvas(
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            val centerX = size.width / 2
+                            val centerY = size.height / 2
+                            val speakerWidth = size.width * 0.4f
+                            val speakerHeight = size.height * 0.6f
+                            
+                            // Speaker cone
+                            drawRect(
+                                color = Color.White,
+                                topLeft = androidx.compose.ui.geometry.Offset(
+                                    centerX - speakerWidth / 2,
+                                    centerY - speakerHeight / 2
+                                ),
+                                size = androidx.compose.ui.geometry.Size(speakerWidth, speakerHeight)
+                            )
+                            
+                            // Speaker handle
+                            drawRect(
+                                color = Color.White,
+                                topLeft = androidx.compose.ui.geometry.Offset(
+                                    centerX - speakerWidth / 2 - size.width * 0.1f,
+                                    centerY - speakerHeight * 0.3f
+                                ),
+                                size = androidx.compose.ui.geometry.Size(size.width * 0.1f, speakerHeight * 0.6f)
+                            )
+                            
+                            // Sound waves
+                            val waveSpacing = size.width * 0.15f
+                            val waveHeight = size.height * 0.2f
+                            
+                            // First wave
+                            drawLine(
+                                color = Color.White,
+                                start = androidx.compose.ui.geometry.Offset(
+                                    centerX + speakerWidth / 2 + waveSpacing,
+                                    centerY
+                                ),
+                                end = androidx.compose.ui.geometry.Offset(
+                                    centerX + speakerWidth / 2 + waveSpacing,
+                                    centerY - waveHeight
+                                ),
+                                strokeWidth = 1.dp.toPx()
+                            )
+                            
+                            // Second wave
+                            drawLine(
+                                color = Color.White,
+                                start = androidx.compose.ui.geometry.Offset(
+                                    centerX + speakerWidth / 2 + waveSpacing * 2,
+                                    centerY
+                                ),
+                                end = androidx.compose.ui.geometry.Offset(
+                                    centerX + speakerWidth / 2 + waveSpacing * 2,
+                                    centerY - waveHeight * 1.5f
+                                ),
+                                strokeWidth = 1.dp.toPx()
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -504,10 +650,9 @@ private fun isVideoPost(post: RedditPost): Boolean {
     return post.isVideo == true || 
            post.media?.redditVideo != null || 
            post.secureMedia?.redditVideo != null ||
-           (post.url?.contains("youtube.com") == true) ||
-           (post.url?.contains("youtu.be") == true) ||
            (post.url?.endsWith(".mp4") == true) ||
            (post.url?.endsWith(".webm") == true)
+    // Note: YouTube videos are excluded because ExoPlayer can't play them directly
 }
 
 private fun getVideoUrl(post: RedditPost): String? {
@@ -530,10 +675,10 @@ private fun getVideoUrl(post: RedditPost): String? {
         }
     }
     
-    // Handle YouTube URLs
+    // Handle YouTube URLs - ExoPlayer can't play YouTube directly
     post.url?.let { url ->
         if (url.contains("youtube.com") || url.contains("youtu.be")) {
-            return convertYouTubeToEmbed(url)
+            return null // Don't try to play YouTube videos with ExoPlayer
         }
     }
     
