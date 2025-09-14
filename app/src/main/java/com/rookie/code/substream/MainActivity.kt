@@ -17,7 +17,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
+
         enableEdgeToEdge()
         setContent {
             SubStreamTheme {
@@ -27,14 +27,6 @@ class MainActivity : ComponentActivity() {
                         @OptIn(ExperimentalMaterial3Api::class)
                         TopAppBar(
                             title = { Text("SubStream") },
-                            actions = {
-                                val context = LocalContext.current
-                                TextButton(
-                                    onClick = { /*NetworkProfiler.openProfiler(context)*/ }
-                                ) {
-                                    Text("Profiler")
-                                }
-                            }
                         )
                     }
                 ) { innerPadding ->
