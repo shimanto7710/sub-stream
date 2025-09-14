@@ -2,12 +2,19 @@ package com.rookie.code.substream.presentation.screen
 
 import android.content.Context
 import android.net.Uri
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.input.pointer.pointerInput
+import kotlinx.coroutines.launch
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
@@ -22,6 +29,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -44,241 +52,110 @@ fun PostsScreen(
     viewModel: PostsViewModel
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var selectedVideoPost by remember { mutableStateOf<RedditPost?>(null) }
 
     LaunchedEffect(subreddit) {
         viewModel.loadPosts(subreddit)
     }
 
-    // Show full-screen video player if a video is selected
-    if (selectedVideoPost != null) {
-        FullScreenVideoPlayer(
-            post = selectedVideoPost!!,
-            onClose = { selectedVideoPost = null }
-        )
-    } else {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = {
-                        Text(
-                            text = "r/$subreddit",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(
-                                imageVector = Icons.Default.ArrowBack,
-                                contentDescription = "Back"
-                            )
-                        }
-                    }
+    when (uiState) {
+        is PostsViewModel.PostsUiState.Loading -> {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        }
+        is PostsViewModel.PostsUiState.Error -> {
+            ErrorContent(
+                message = (uiState as PostsViewModel.PostsUiState.Error).message,
+                onRetry = { viewModel.loadPosts(subreddit) }
+            )
+        }
+        is PostsViewModel.PostsUiState.Success -> {
+            val allPosts = (uiState as PostsViewModel.PostsUiState.Success).posts
+            val videoPosts = allPosts.filter { isVideoPost(it) }
+            
+            if (videoPosts.isEmpty()) {
+                NoVideosContent(
+                    message = "No videos found in r/$subreddit",
+                    onRetry = { viewModel.loadPosts(subreddit) }
                 )
-            }
-        ) { innerPadding ->
-            when (uiState) {
-                is PostsViewModel.PostsUiState.Loading -> {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(innerPadding),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator()
-                    }
-                }
-                is PostsViewModel.PostsUiState.Error -> {
-                    ErrorContent(
-                        message = (uiState as PostsViewModel.PostsUiState.Error).message,
-                        onRetry = { viewModel.loadPosts(subreddit) },
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
-            is PostsViewModel.PostsUiState.Success -> {
-                val allPosts = (uiState as PostsViewModel.PostsUiState.Success).posts
-                val videoPosts = allPosts.filter { isVideoPost(it) }
-                
-                if (videoPosts.isEmpty()) {
-                    NoVideosContent(
-                        message = "No videos found in r/$subreddit",
-                        onRetry = { viewModel.loadPosts(subreddit) },
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                } else {
-                    PostsList(
-                        posts = videoPosts,
-                        onVideoClick = { post -> selectedVideoPost = post },
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
-            }
+            } else {
+                VideoFeedScreen(
+                    posts = videoPosts,
+                    subreddit = subreddit,
+                    onBack = onBack
+                )
             }
         }
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun PostsList(
+private fun VideoFeedScreen(
     posts: List<RedditPost>,
-    onVideoClick: (RedditPost) -> Unit,
-    modifier: Modifier = Modifier
+    subreddit: String,
+    onBack: () -> Unit
 ) {
-    LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        item {
-            // Video count header
-            Text(
-                text = "📹 ${posts.size} Video${if (posts.size == 1) "" else "s"} Found",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(bottom = 8.dp)
+    var currentVideoIndex by remember { mutableStateOf(0) }
+    val pagerState = rememberPagerState(
+        initialPage = 0,
+        pageCount = { posts.size }
+    )
+    
+    // Sync pager state with current video index
+    LaunchedEffect(pagerState.currentPage) {
+        currentVideoIndex = pagerState.currentPage
+    }
+    
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Vertical scrolling videos using VerticalPager
+        VerticalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxSize()
+        ) { page ->
+            FullScreenVideoPlayer(
+                post = posts[page],
+                onClose = onBack,
+                showControls = true,
+                isCurrentVideo = page == currentVideoIndex,
+                modifier = Modifier.fillMaxSize()
             )
         }
         
-        items(posts) { post ->
-            PostCard(
-                post = post,
-                onVideoClick = onVideoClick
-            )
-        }
-    }
-}
-
-@Composable
-private fun PostCard(
-    post: RedditPost,
-    onVideoClick: (RedditPost) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val context = LocalContext.current
-    
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable { onVideoClick(post) },
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            // Title
-            Text(
-                text = post.title ?: "No title",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis
-            )
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            // Author and time
-            Row(
-                verticalAlignment = Alignment.CenterVertically
+        // Top overlay with subreddit info and video counter
+        VideoFeedOverlay(
+            subreddit = subreddit,
+            currentIndex = currentVideoIndex + 1,
+            totalVideos = posts.size,
+            onBack = onBack
+        )
+        
+        // Swipe instruction hint
+        if (currentVideoIndex < posts.size - 1) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 100.dp)
             ) {
                 Text(
-                    text = "u/${post.author ?: "unknown"}",
+                    text = "↑ Swipe up for next video",
+                    color = Color.White.copy(alpha = 0.7f),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                
-                Spacer(modifier = Modifier.width(8.dp))
-                
-                Text(
-                    text = "•",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                
-                Spacer(modifier = Modifier.width(8.dp))
-                
-                Text(
-                    text = formatTime(post.createdUtc),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            // Video thumbnail (all posts are videos)
-            VideoThumbnail(
-                post = post,
-                onClick = { onVideoClick(post) }
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            // Self text if available
-            post.selftext?.let { selftext ->
-                if (selftext.isNotEmpty()) {
-                    Text(
-                        text = selftext,
-                        style = MaterialTheme.typography.bodyMedium,
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-            }
-            
-            // Stats row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Score
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ThumbUp,
-                        contentDescription = "Score",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "${post.score ?: post.ups ?: 0}",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-                
-                // Comments
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Email,
-                        contentDescription = "Comments",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "${post.numComments ?: 0}",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-                
-                // Domain
-                Text(
-                    text = post.domain ?: "",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    modifier = Modifier
+                        .background(
+                            Color.Black.copy(alpha = 0.5f),
+                            RoundedCornerShape(16.dp)
+                        )
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
                 )
             }
         }
     }
 }
+
 
 @Composable
 private fun ErrorContent(
@@ -366,26 +243,34 @@ private fun NoVideosContent(
 @Composable
 private fun FullScreenVideoPlayer(
     post: RedditPost,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    showControls: Boolean = true,
+    isCurrentVideo: Boolean = true,
+    modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    var isPlaying by remember { mutableStateOf(true) }
+    var isPlaying by remember { mutableStateOf(isCurrentVideo) }
     var isMuted by remember { mutableStateOf(false) }
-    var showControls by remember { mutableStateOf(true) }
+    var showVideoControls by remember { mutableStateOf(showControls) }
     
     // Auto-hide controls after 3 seconds
-    LaunchedEffect(showControls) {
-        if (showControls) {
+    LaunchedEffect(showVideoControls) {
+        if (showVideoControls) {
             kotlinx.coroutines.delay(3000)
-            showControls = false
+            showVideoControls = false
         }
     }
     
+    // Pause video when not current
+    LaunchedEffect(isCurrentVideo) {
+        isPlaying = isCurrentVideo
+    }
+    
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .background(Color.Black)
-            .clickable { showControls = !showControls }
+            .clickable { showVideoControls = !showVideoControls }
     ) {
         // Video Player
         VideoPlayer(
@@ -397,7 +282,7 @@ private fun FullScreenVideoPlayer(
         )
         
         // Controls overlay
-        if (showControls) {
+        if (showVideoControls) {
             VideoControls(
                 isPlaying = isPlaying,
                 isMuted = isMuted,
@@ -457,6 +342,65 @@ private fun VideoPlayer(
 }
 
 @Composable
+private fun VideoFeedOverlay(
+    subreddit: String,
+    currentIndex: Int,
+    totalVideos: Int,
+    onBack: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Color.Black.copy(alpha = 0.1f)
+            )
+    ) {
+        // Top bar with subreddit info and video counter
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Back button
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier
+                    .background(
+                        Color.Black.copy(alpha = 0.5f),
+                        RoundedCornerShape(20.dp)
+                    )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ArrowBack,
+                    contentDescription = "Back",
+                    tint = Color.White
+                )
+            }
+            
+            // Video counter
+            Text(
+                text = "$currentIndex / $totalVideos",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.White,
+                modifier = Modifier
+                    .background(
+                        Color.Black.copy(alpha = 0.5f),
+                        RoundedCornerShape(12.dp)
+                    )
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+            )
+        }
+        
+        Spacer(modifier = Modifier.weight(1f))
+        
+        // Bottom area for video info (will be filled by individual video controls)
+        Spacer(modifier = Modifier.height(100.dp))
+    }
+}
+
+@Composable
 private fun VideoControls(
     isPlaying: Boolean,
     isMuted: Boolean,
@@ -472,47 +416,6 @@ private fun VideoControls(
                 Color.Black.copy(alpha = 0.3f)
             )
     ) {
-        // Top controls
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Close button
-            IconButton(
-                onClick = onClose,
-                modifier = Modifier
-                    .background(
-                        Color.Black.copy(alpha = 0.5f),
-                        RoundedCornerShape(20.dp)
-                    )
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "Close",
-                    tint = Color.White
-                )
-            }
-            
-            // Mute button
-            IconButton(
-                onClick = onMuteToggle,
-                modifier = Modifier
-                    .background(
-                        Color.Black.copy(alpha = 0.5f),
-                        RoundedCornerShape(20.dp)
-                    )
-            ) {
-                Icon(
-                    imageVector = if (isMuted) Icons.Default.Close else Icons.Default.PlayArrow,
-                    contentDescription = if (isMuted) "Unmute" else "Mute",
-                    tint = Color.White
-                )
-            }
-        }
-        
         Spacer(modifier = Modifier.weight(1f))
         
         // Center play/pause button
@@ -556,59 +459,37 @@ private fun VideoControls(
             
             Spacer(modifier = Modifier.height(8.dp))
             
-            Text(
-                text = "u/${post.author ?: "unknown"} • r/${post.subreddit ?: "unknown"}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.8f)
-            )
-        }
-    }
-}
-
-@Composable
-private fun VideoThumbnail(
-    post: RedditPost,
-    onClick: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(200.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(Color.Black)
-            .clickable { onClick() },
-        contentAlignment = Alignment.Center
-    ) {
-        // Video thumbnail
-        post.thumbnail?.let { thumbnail ->
-            if (thumbnail != "self" && thumbnail != "default" && thumbnail.isNotEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "u/${post.author ?: "unknown"} • r/${post.subreddit ?: "unknown"}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.8f)
+                )
+                
+                // Mute button
+                IconButton(
+                    onClick = onMuteToggle,
+                    modifier = Modifier
+                        .background(
+                            Color.Black.copy(alpha = 0.5f),
+                            RoundedCornerShape(20.dp)
+                        )
                 ) {
-                    Text(
-                        text = "Video Thumbnail",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White
+                    Icon(
+                        imageVector = if (isMuted) Icons.Default.Close else Icons.Default.PlayArrow,
+                        contentDescription = if (isMuted) "Unmute" else "Mute",
+                        tint = Color.White
                     )
                 }
             }
         }
-        
-        // Play button overlay
-        Icon(
-            imageVector = Icons.Default.PlayArrow,
-            contentDescription = "Play Video",
-            tint = Color.White,
-            modifier = Modifier
-                .size(60.dp)
-                .background(
-                    Color.Black.copy(alpha = 0.6f),
-                    RoundedCornerShape(30.dp)
-                )
-        )
     }
 }
+
 
 // Helper functions
 private fun isVideoPost(post: RedditPost): Boolean {
