@@ -125,13 +125,6 @@ private fun VideoFeedScreen(
             )
         }
         
-        // Top overlay with subreddit info and video counter
-        VideoFeedOverlay(
-            subreddit = subreddit,
-            currentIndex = currentVideoIndex + 1,
-            totalVideos = posts.size,
-            onBack = onBack
-        )
         
         // Swipe instruction hint
         if (currentVideoIndex < posts.size - 1) {
@@ -281,6 +274,24 @@ private fun FullScreenVideoPlayer(
             modifier = Modifier.fillMaxSize()
         )
         
+        // Back button (always visible)
+        IconButton(
+            onClick = onClose,
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(16.dp)
+                .background(
+                    Color.Black.copy(alpha = 0.5f),
+                    RoundedCornerShape(20.dp)
+                )
+        ) {
+            Icon(
+                imageVector = Icons.Default.ArrowBack,
+                contentDescription = "Back",
+                tint = Color.White
+            )
+        }
+        
         // Controls overlay
         if (showVideoControls) {
             VideoControls(
@@ -341,64 +352,6 @@ private fun VideoPlayer(
     )
 }
 
-@Composable
-private fun VideoFeedOverlay(
-    subreddit: String,
-    currentIndex: Int,
-    totalVideos: Int,
-    onBack: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Color.Black.copy(alpha = 0.1f)
-            )
-    ) {
-        // Top bar with subreddit info and video counter
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Back button
-            IconButton(
-                onClick = onBack,
-                modifier = Modifier
-                    .background(
-                        Color.Black.copy(alpha = 0.5f),
-                        RoundedCornerShape(20.dp)
-                    )
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "Back",
-                    tint = Color.White
-                )
-            }
-            
-            // Video counter
-            Text(
-                text = "$currentIndex / $totalVideos",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.White,
-                modifier = Modifier
-                    .background(
-                        Color.Black.copy(alpha = 0.5f),
-                        RoundedCornerShape(12.dp)
-                    )
-                    .padding(horizontal = 12.dp, vertical = 6.dp)
-            )
-        }
-        
-        Spacer(modifier = Modifier.weight(1f))
-        
-        // Bottom area for video info (will be filled by individual video controls)
-        Spacer(modifier = Modifier.height(100.dp))
-    }
-}
 
 @Composable
 private fun VideoControls(

@@ -32,7 +32,7 @@ class MainActivity : ComponentActivity() {
 
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
-                    topBar = {
+                    /*topBar = {
                         @OptIn(ExperimentalMaterial3Api::class)
                         TopAppBar(
                             title = {
@@ -73,7 +73,7 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                         )
-                    }
+                    }*/
                 ) { innerPadding ->
                     when (currentScreen) {
                         "home" -> {
