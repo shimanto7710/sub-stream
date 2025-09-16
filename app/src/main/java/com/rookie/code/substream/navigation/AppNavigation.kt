@@ -40,16 +40,21 @@ fun AppNavigation(
     ) {
         composable<Route.Home> {
             HomeScreen(
-                onSubredditClick = { subreddit ->
-                    navController.navigateToPosts(subreddit)
+                onSubredditClick = { subreddit, sorting ->
+                    navController.navigateToPosts(subreddit, sorting.apiValue)
                 }
             )
         }
 
         composable<Route.Posts> {
             val args = it.toRoute<Route.Posts>()
+            val sorting = com.rookie.code.substream.data.model.PostSorting.values()
+                .find { sorting -> sorting.apiValue == args.sorting } 
+                ?: com.rookie.code.substream.data.model.PostSorting.HOT
+            
             PostsScreen(
                 subreddit = args.subreddit,
+                sorting = sorting,
                 onBack = {
                     navController.navigateBack()
                 },

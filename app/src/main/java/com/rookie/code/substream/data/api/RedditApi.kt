@@ -47,11 +47,11 @@ class RedditApi(
     }
 
     /**
-     * Get hot posts from a subreddit
+     * Get posts from a subreddit with specified sorting
      */
-    suspend fun getSubredditPosts(subreddit: String, limit: Int = 25, after: String? = null): Resource<RedditReelResponse> {
+    suspend fun getSubredditPosts(subreddit: String, sorting: String = "hot", limit: Int = 25, after: String? = null): Resource<RedditReelResponse> {
         return safeCall {
-            val endpoint = "r/$subreddit/hot.json"
+            val endpoint = "r/$subreddit/$sorting.json"
             println("RedditApi: Calling endpoint: $endpoint with after: $after")
             client.get(endpoint) {
                 url {

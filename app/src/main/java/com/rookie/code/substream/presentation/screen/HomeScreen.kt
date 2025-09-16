@@ -10,6 +10,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,6 +24,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rookie.code.substream.data.model.Subreddit
+import com.rookie.code.substream.data.model.PostSorting
 import com.rookie.code.substream.presentation.viewmodel.SubredditViewModel
 import org.koin.androidx.compose.koinViewModel
 
@@ -29,18 +32,100 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun HomeScreen(
     modifier: Modifier = Modifier,
-    onSubredditClick: (String) -> Unit = {},
+    onSubredditClick: (String, PostSorting) -> Unit = { _, _ -> },
     viewModel: SubredditViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var searchQuery by remember { mutableStateOf("") }
-    
+    var showSortingMenu by remember { mutableStateOf(false) }
+    var currentSorting by remember { mutableStateOf(PostSorting.HOT) }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { 
+                    Text(
+                        "SubStream",
+                        style = MaterialTheme.typography.titleMedium
+                    ) 
+                },
+                actions = {
+                    Box {
+                        IconButton(onClick = { 
+                            println("HomeScreen: Sort button clicked")
+                            showSortingMenu = true 
+                        }) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = currentSorting.displayName,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Icon(
+                                    Icons.Default.MoreVert, 
+                                    contentDescription = "Sort",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                        
+                        DropdownMenu(
+                            expanded = showSortingMenu,
+                            onDismissRequest = { 
+                                println("HomeScreen: Dropdown dismissed")
+                                showSortingMenu = false 
+                            }
+                        ) {
+                            PostSorting.values().forEach { sorting ->
+                                val isSelected = sorting == currentSorting
+                                DropdownMenuItem(
+                                    text = { 
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Text(
+                                                text = sorting.displayName,
+                                                color = if (isSelected) {
+                                                    MaterialTheme.colorScheme.primary
+                                                } else {
+                                                    MaterialTheme.colorScheme.onSurface
+                                                },
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                            )
+                                            if (isSelected) {
+                                                Icon(
+                                                    Icons.Default.ThumbUp,
+                                                    contentDescription = "Selected",
+                                                    modifier = Modifier.size(16.dp),
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                        }
+                                    },
+                                    onClick = { 
+                                        println("HomeScreen: Sorting changed to ${sorting.displayName}")
+                                        currentSorting = sorting
+                                        showSortingMenu = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            )
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(horizontal = 16.dp, vertical = 4.dp)
+        ) {
         // Search Bar
         OutlinedTextField(
             value = searchQuery,
@@ -48,13 +133,20 @@ fun HomeScreen(
                 searchQuery = it
                 viewModel.searchSubreddits(it)
             },
-            label = { Text("Search subreddits...") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
+            placeholder = { Text("Search subreddits...") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            singleLine = true,
+            textStyle = MaterialTheme.typography.bodyMedium,
+            shape = RoundedCornerShape(8.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline
+            )
         )
-        
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         // Content
         when {
@@ -97,12 +189,13 @@ fun HomeScreen(
                 SubredditList(
                     subreddits = uiState.subreddits,
                     onRefresh = { viewModel.refresh() },
-                    onSubredditClick = onSubredditClick,
+                    onSubredditClick = { subreddit -> onSubredditClick(subreddit, currentSorting) },
                     isLoadingMore = uiState.isLoadingMore,
                     canLoadMore = uiState.canLoadMore,
                     onLoadMore = { viewModel.loadMoreSubreddits() }
                 )
             }
+        }
         }
     }
 }

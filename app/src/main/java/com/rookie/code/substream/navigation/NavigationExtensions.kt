@@ -14,8 +14,8 @@ fun NavController.navigateToRoute(
     navigate(route, builder)
 }
 
-fun NavController.navigateToPosts(subreddit: String) {
-    navigateToRoute(Route.Posts(subreddit))
+fun NavController.navigateToPosts(subreddit: String, sorting: String = "hot") {
+    navigateToRoute(Route.Posts(subreddit, sorting))
 }
 
 fun NavController.navigateToVideos() {

@@ -9,7 +9,8 @@ sealed interface Route {
 
     @Serializable
     data class Posts(
-        val subreddit: String
+        val subreddit: String,
+        val sorting: String = "hot"
     ) : Route
 
     @Serializable

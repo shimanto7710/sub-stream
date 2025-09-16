@@ -17,11 +17,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.input.pointer.pointerInput
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.ThumbUp
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -43,6 +44,7 @@ import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import com.rookie.code.substream.data.model.RedditPost
+import com.rookie.code.substream.data.model.PostSorting
 import com.rookie.code.substream.presentation.viewmodel.PostsViewModel
 import java.text.SimpleDateFormat
 import java.util.*
@@ -51,51 +53,57 @@ import java.util.*
 @Composable
 fun PostsScreen(
     subreddit: String,
+    sorting: PostSorting = PostSorting.HOT,
     onBack: () -> Unit,
     viewModel: PostsViewModel
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    LaunchedEffect(subreddit) {
-        viewModel.loadPosts(subreddit)
+    LaunchedEffect(subreddit, sorting) {
+        println("PostsScreen: Loading posts for subreddit: $subreddit with sorting: ${sorting.displayName}")
+        viewModel.loadPosts(subreddit, sorting)
     }
 
-    when (uiState) {
-        is PostsViewModel.PostsUiState.Loading -> {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
+    Box(modifier = Modifier.fillMaxSize()) {
+        when (uiState) {
+            is PostsViewModel.PostsUiState.Loading -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
             }
-        }
-        is PostsViewModel.PostsUiState.Error -> {
-            ErrorContent(
-                message = (uiState as PostsViewModel.PostsUiState.Error).message,
-                onRetry = { viewModel.loadPosts(subreddit) },
-                onBack = onBack
-            )
-        }
-        is PostsViewModel.PostsUiState.Success -> {
-            val allPosts = (uiState as PostsViewModel.PostsUiState.Success).posts
-            val videoPosts = allPosts.filter { isVideoPost(it) }
-            
-            if (videoPosts.isEmpty()) {
-                NoVideosContent(
-                    message = "No videos found in r/$subreddit",
+            is PostsViewModel.PostsUiState.Error -> {
+                ErrorContent(
+                    message = (uiState as PostsViewModel.PostsUiState.Error).message,
                     onRetry = { viewModel.loadPosts(subreddit) },
                     onBack = onBack
                 )
-            } else {
-                VideoFeedScreen(
-                    posts = videoPosts,
-                    subreddit = subreddit,
-                    onBack = onBack,
-                    viewModel = viewModel
-                )
+            }
+            is PostsViewModel.PostsUiState.Success -> {
+                val allPosts = (uiState as PostsViewModel.PostsUiState.Success).posts
+                val currentSorting = (uiState as PostsViewModel.PostsUiState.Success).sorting
+                val videoPosts = allPosts.filter { isVideoPost(it) }
+                
+                if (videoPosts.isEmpty()) {
+                    NoVideosContent(
+                        message = "No videos found in r/$subreddit",
+                        onRetry = { viewModel.loadPosts(subreddit) },
+                        onBack = onBack
+                    )
+                } else {
+                    VideoFeedScreen(
+                        posts = videoPosts,
+                        subreddit = subreddit,
+                        onBack = onBack,
+                        viewModel = viewModel
+                    )
+                }
             }
         }
     }
+
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -104,7 +112,8 @@ private fun VideoFeedScreen(
     posts: List<RedditPost>,
     subreddit: String,
     onBack: () -> Unit,
-    viewModel: PostsViewModel
+    viewModel: PostsViewModel,
+    modifier: Modifier = Modifier
 ) {
     var currentVideoIndex by remember { mutableStateOf(0) }
     var isMuted by remember { mutableStateOf(false) } // Global mute state for all videos
@@ -123,7 +132,7 @@ private fun VideoFeedScreen(
         }
     }
     
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = modifier.fillMaxSize()) {
         // Vertical scrolling videos using VerticalPager
         VerticalPager(
             state = pagerState,
@@ -320,7 +329,7 @@ private fun FullScreenVideoPlayer(
                 )
         ) {
             Icon(
-                imageVector = Icons.Default.ArrowBack,
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Back",
                 tint = Color.White
             )
@@ -691,6 +700,7 @@ private fun getVideoUrl(post: RedditPost): String? {
     
     return null
 }
+
 
 private fun convertYouTubeToEmbed(url: String): String? {
     return try {
