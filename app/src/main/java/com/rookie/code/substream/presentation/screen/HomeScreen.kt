@@ -74,7 +74,7 @@ fun HomeScreen(
         modifier = modifier,
         onSubredditClick = onSubredditClick,
         onSearchQueryChange = { query -> viewModel.searchSubreddits(query) },
-        onSortingChange = { /* Handle sorting change if needed */ },
+        onSortingChange = { sorting -> viewModel.updateSorting(sorting) },
         onRetry = { viewModel.refresh() },
         onDismissError = { viewModel.clearError() },
         onLoadMore = { viewModel.loadMoreSubreddits() },
@@ -101,9 +101,9 @@ private fun HomeScreenView(
     onClearSearch: () -> Unit = {},
     uiState: SubredditUiState = SubredditUiState()
 ) {
-    var searchQuery by remember { mutableStateOf("") }
+    var searchQuery by remember { mutableStateOf(uiState.searchQuery) }
     var showSortingMenu by remember { mutableStateOf(false) }
-    var currentSorting by remember { mutableStateOf(PostSortingEntity.HOT) }
+    val currentSorting = uiState.currentSorting
 
     Scaffold(
         topBar = {
@@ -161,7 +161,7 @@ private fun HomeScreenView(
                                     },
                                     onClick = {
                                         println("${HomeScreenConstants.LOG_TAG}: ${HomeScreenConstants.SORTING_CHANGED.replace("{sorting}", sorting.displayName)}")
-                                        currentSorting = sorting
+                                        onSortingChange(sorting)
                                         showSortingMenu = false
                                     }
                                 )

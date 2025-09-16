@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.rookie.code.substream.common.constants.StringConstants
 import com.rookie.code.substream.data.model.Subreddit
 import com.rookie.code.substream.data.utils.Resource
+import com.rookie.code.substream.domain.entity.PostSortingEntity
 import com.rookie.code.substream.domain.usecase.GetPopularSubredditsUseCase
 import com.rookie.code.substream.domain.usecase.SearchSubredditsUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,7 +22,8 @@ data class SubredditUiState(
     val hasSearched: Boolean = false,
     val isLoadingMore: Boolean = false,
     val canLoadMore: Boolean = true,
-    val currentAfter: String? = null
+    val currentAfter: String? = null,
+    val currentSorting: PostSortingEntity = PostSortingEntity.HOT
 )
 
 class SubredditViewModel(
@@ -172,5 +174,9 @@ class SubredditViewModel(
         } else {
             searchSubreddits(_uiState.value.searchQuery)
         }
+    }
+
+    fun updateSorting(sorting: PostSortingEntity) {
+        _uiState.value = _uiState.value.copy(currentSorting = sorting)
     }
 }
