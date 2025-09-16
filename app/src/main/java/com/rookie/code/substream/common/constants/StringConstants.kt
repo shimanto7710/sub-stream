@@ -63,4 +63,14 @@ object StringConstants {
         const val NO_REFRESH_TOKEN = "No refresh token available"
         const val NO_ACCESS_TOKEN = "No access token available"
     }
+
+    // Logging
+    const val LOG_TAG = "SubredditViewModel"
+
+    // Debug Messages
+    const val SEARCH_SUCCESSFUL = "Search successful, found {count} subreddits"
+
+    // Error Messages
+    const val FAILED_TO_LOAD_SUBREDDITS = "Failed to load subreddits"
+    const val FAILED_TO_SEARCH_SUBREDDITS = "Failed to search subreddits"
 }

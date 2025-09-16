@@ -59,7 +59,7 @@ class SubredditViewModel(
                 is Resource.Error -> {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        error = result.exception.message ?: SubredditViewModelConstants.FAILED_TO_LOAD_SUBREDDITS,
+                        error = result.exception.message ?: StringConstants.FAILED_TO_LOAD_SUBREDDITS,
                         canLoadMore = false
                     )
                 }
@@ -97,7 +97,7 @@ class SubredditViewModel(
             when (val result = searchSubredditsUseCase(query, limit = 25, after = null)) {
                 is Resource.Success -> {
                     val (subreddits, nextAfter) = result.data
-                    println("${SubredditViewModelConstants.LOG_TAG}: ${SubredditViewModelConstants.SEARCH_SUCCESSFUL.replace("{count}", subreddits.size.toString())}")
+                    println("${StringConstants.LOG_TAG}: ${StringConstants.SEARCH_SUCCESSFUL.replace("{count}", subreddits.size.toString())}")
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         subreddits = subreddits,
@@ -111,7 +111,7 @@ class SubredditViewModel(
                 is Resource.Error -> {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        error = result.exception.message ?: SubredditViewModelConstants.FAILED_TO_SEARCH_SUBREDDITS,
+                        error = result.exception.message ?: StringConstants.FAILED_TO_SEARCH_SUBREDDITS,
                         isSearching = false,
                         hasSearched = true,
                         canLoadMore = false
