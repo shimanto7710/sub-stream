@@ -97,7 +97,10 @@ fun HomeScreen(
                 SubredditList(
                     subreddits = uiState.subreddits,
                     onRefresh = { viewModel.refresh() },
-                    onSubredditClick = onSubredditClick
+                    onSubredditClick = onSubredditClick,
+                    isLoadingMore = uiState.isLoadingMore,
+                    canLoadMore = uiState.canLoadMore,
+                    onLoadMore = { viewModel.loadMoreSubreddits() }
                 )
             }
         }
@@ -108,7 +111,10 @@ fun HomeScreen(
 private fun SubredditList(
     subreddits: List<Subreddit>,
     onRefresh: () -> Unit,
-    onSubredditClick: (String) -> Unit
+    onSubredditClick: (String) -> Unit,
+    isLoadingMore: Boolean = false,
+    canLoadMore: Boolean = true,
+    onLoadMore: () -> Unit
 ) {
     LazyColumn(
         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -118,6 +124,15 @@ private fun SubredditList(
                 subreddit = subreddit,
                 onClick = { onSubredditClick(subreddit.displayName) }
             )
+        }
+        
+        if (canLoadMore) {
+            item {
+                LoadMoreButton(
+                    isLoading = isLoadingMore,
+                    onLoadMore = onLoadMore
+                )
+            }
         }
     }
 }
@@ -359,6 +374,32 @@ private fun NoSearchResultsContent(
                 modifier = Modifier.padding(horizontal = 32.dp)
             ) {
                 Text("Clear Search")
+            }
+        }
+    }
+}
+
+@Composable
+private fun LoadMoreButton(
+    isLoading: Boolean,
+    onLoadMore: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        if (isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(24.dp)
+            )
+        } else {
+            Button(
+                onClick = onLoadMore,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Load More")
             }
         }
     }

@@ -16,11 +16,12 @@ class RedditApi(
     /**
      * Get popular subreddits
      */
-    suspend fun getPopularSubreddits(limit: Int = 25): Resource<SubredditListResponse> {
+    suspend fun getPopularSubreddits(limit: Int = 25, after: String? = null): Resource<SubredditListResponse> {
         return safeCall {
             val response = client.get("subreddits/popular") {
                 url {
                     parameters.append("limit", limit.toString())
+                    after?.let { parameters.append("after", it) }
                 }
             }
             println("RedditApi: Response status: ${response.status}")
@@ -32,13 +33,14 @@ class RedditApi(
     /**
      * Search subreddits
      */
-    suspend fun searchSubreddits(query: String, limit: Int = 25): Resource<SubredditListResponse> {
+    suspend fun searchSubreddits(query: String, limit: Int = 25, after: String? = null): Resource<SubredditListResponse> {
         return safeCall {
             client.get("subreddits/search") {
                 url {
                     parameters.append("q", query)
                     parameters.append("limit", limit.toString())
                     parameters.append("type", "sr")
+                    after?.let { parameters.append("after", it) }
                 }
             }
         }

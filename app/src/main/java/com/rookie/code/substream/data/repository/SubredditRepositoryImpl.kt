@@ -16,9 +16,25 @@ class SubredditRepositoryImpl(
         }
     }
 
+    override suspend fun getPopularSubreddits(limit: Int, after: String?): Resource<Pair<List<Subreddit>, String?>> {
+        return redditApi.getPopularSubreddits(limit, after).map { response -> 
+            val subreddits = response.data.children.map { it.data }
+            val nextAfter = response.data.after
+            Pair(subreddits, nextAfter)
+        }
+    }
+
     override suspend fun searchSubreddits(query: String, limit: Int): Resource<List<Subreddit>> {
         return redditApi.searchSubreddits(query, limit).map { response -> 
             response.data.children.map { it.data }
+        }
+    }
+
+    override suspend fun searchSubreddits(query: String, limit: Int, after: String?): Resource<Pair<List<Subreddit>, String?>> {
+        return redditApi.searchSubreddits(query, limit, after).map { response -> 
+            val subreddits = response.data.children.map { it.data }
+            val nextAfter = response.data.after
+            Pair(subreddits, nextAfter)
         }
     }
 }

@@ -36,7 +36,13 @@ data class SubredditListResponse(
 @Serializable
 data class SubredditListData(
     @SerialName("children")
-    val children: List<SubredditChild>
+    val children: List<SubredditChild>,
+    @SerialName("after")
+    val after: String? = null,
+    @SerialName("before")
+    val before: String? = null,
+    @SerialName("dist")
+    val dist: Int? = null
 )
 
 @Serializable
