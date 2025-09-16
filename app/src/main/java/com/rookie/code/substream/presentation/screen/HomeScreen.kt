@@ -25,21 +25,51 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rookie.code.substream.R
-import com.rookie.code.substream.common.constants.StringConstants
 import com.rookie.code.substream.data.model.Subreddit
 import com.rookie.code.substream.domain.entity.PostSortingEntity
 import com.rookie.code.substream.presentation.viewmodel.SubredditViewModel
+import com.rookie.code.substream.presentation.viewmodel.SubredditUiState
 import org.koin.androidx.compose.koinViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     modifier: Modifier = Modifier,
-    onSubredditClick: (String, PostSortingEntity) -> Unit = { _, _ -> },
-    viewModel: SubredditViewModel = koinViewModel()
+    onSubredditClick: (String, PostSortingEntity) -> Unit = { _, _ -> }
 ) {
-    val context = LocalContext.current
+    val viewModel: SubredditViewModel = koinViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    
+    HomeScreenView(
+        modifier = modifier,
+        onSubredditClick = onSubredditClick,
+        onSearchQueryChange = { query -> viewModel.searchSubreddits(query) },
+        onSortingChange = { /* Handle sorting change if needed */ },
+        onRetry = { viewModel.refresh() },
+        onDismissError = { viewModel.clearError() },
+        onLoadMore = { viewModel.loadMoreSubreddits() },
+        onRefresh = { viewModel.refresh() },
+        onClearSearch = { viewModel.searchSubreddits("") },
+        uiState = uiState
+    )
+}
+
+
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HomeScreenView(
+    modifier: Modifier = Modifier,
+    onSubredditClick: (String, PostSortingEntity) -> Unit = { _, _ -> },
+    onSearchQueryChange: (String) -> Unit = {},
+    onSortingChange: (PostSortingEntity) -> Unit = {},
+    onRetry: () -> Unit = {},
+    onDismissError: () -> Unit = {},
+    onLoadMore: () -> Unit = {},
+    onRefresh: () -> Unit = {},
+    onClearSearch: () -> Unit = {},
+    uiState: SubredditUiState = SubredditUiState()
+) {
     var searchQuery by remember { mutableStateOf("") }
     var showSortingMenu by remember { mutableStateOf(false) }
     var currentSorting by remember { mutableStateOf(PostSortingEntity.HOT) }
@@ -122,7 +152,7 @@ fun HomeScreen(
                         value = searchQuery,
                         onValueChange = {
                             searchQuery = it
-                            viewModel.searchSubreddits(it)
+                            onSearchQueryChange(it)
                         },
                         placeholder = { Text(stringResource(R.string.search_placeholder)) },
             modifier = Modifier
@@ -154,8 +184,8 @@ fun HomeScreen(
                             println("${HomeScreenConstants.LOG_TAG}: ${HomeScreenConstants.SHOWING_ERROR.replace("{error}", uiState.error ?: "")}")
                             ErrorContent(
                                 error = uiState.error ?: HomeScreenConstants.ERROR_UNKNOWN,
-                                onRetry = { viewModel.refresh() },
-                                onDismiss = { viewModel.clearError() }
+                                onRetry = onRetry,
+                                onDismiss = onDismissError
                             )
                         }
             
@@ -165,7 +195,7 @@ fun HomeScreen(
                     searchQuery = uiState.searchQuery,
                     onClearSearch = {
                         searchQuery = ""
-                        viewModel.searchSubreddits("")
+                        onClearSearch()
                     }
                 )
             }
@@ -179,11 +209,11 @@ fun HomeScreen(
                 println("${HomeScreenConstants.LOG_TAG}: ${HomeScreenConstants.SHOWING_SUBREDDITS.replace("{count}", uiState.subreddits.size.toString())}")
                 SubredditList(
                     subreddits = uiState.subreddits,
-                    onRefresh = { viewModel.refresh() },
+                    onRefresh = onRefresh,
                     onSubredditClick = { subreddit -> onSubredditClick(subreddit, currentSorting) },
                     isLoadingMore = uiState.isLoadingMore,
                     canLoadMore = uiState.canLoadMore,
-                    onLoadMore = { viewModel.loadMoreSubreddits() }
+                    onLoadMore = onLoadMore
                 )
             }
         }
