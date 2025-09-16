@@ -16,12 +16,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rookie.code.substream.R
@@ -517,4 +516,68 @@ private fun LoadMoreButton(
             }
         }
     }
+}
+
+// Preview composables
+@Preview(showBackground = true)
+@Composable
+private fun HomeScreenViewPreview() {
+    HomeScreenView(
+        onSubredditClick = { _, _ -> },
+        onSearchQueryChange = {},
+        onSortingChange = {},
+        onRetry = {},
+        onDismissError = {},
+        onLoadMore = {},
+        onRefresh = {},
+        onClearSearch = {},
+        uiState = SubredditUiState(
+            isLoading = false,
+            subreddits = listOf(
+                Subreddit(
+                    id = "1",
+                    displayName = "androiddev",
+                    displayNamePrefixed = "r/androiddev",
+                    title = "Android Development",
+                    publicDescription = "A subreddit for Android developers to discuss Android development, programming, and related topics.",
+                    subscribers = 150000,
+                    activeUserCount = 2500,
+                    isNsfw = false,
+                    isSubscribed = false,
+                    createdUtc = 1234567890.0
+                ),
+                Subreddit(
+                    id = "2",
+                    displayName = "kotlin",
+                    displayNamePrefixed = "r/kotlin",
+                    title = "Kotlin Programming Language",
+                    publicDescription = "Discussion about Kotlin, statically typed programming language for the JVM, Android, browser, and native.",
+                    subscribers = 45000,
+                    activeUserCount = 800,
+                    isNsfw = false,
+                    isSubscribed = false,
+                    createdUtc = 1234567890.0
+                ),
+                Subreddit(
+                    id = "3",
+                    displayName = "compose",
+                    displayNamePrefixed = "r/compose",
+                    title = "Jetpack Compose",
+                    publicDescription = "A modern toolkit for building native Android UIs with Jetpack Compose.",
+                    subscribers = 25000,
+                    activeUserCount = 400,
+                    isNsfw = false,
+                    isSubscribed = false,
+                    createdUtc = 1234567890.0
+                )
+            ),
+            error = null,
+            searchQuery = "",
+            isSearching = false,
+            hasSearched = false,
+            isLoadingMore = false,
+            canLoadMore = true,
+            currentAfter = null
+        )
+    )
 }
