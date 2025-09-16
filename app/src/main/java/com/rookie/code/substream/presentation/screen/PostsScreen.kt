@@ -43,8 +43,8 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
-import com.rookie.code.substream.data.model.RedditPost
-import com.rookie.code.substream.data.model.PostSorting
+import com.rookie.code.substream.domain.entity.RedditPostEntity
+import com.rookie.code.substream.domain.entity.PostSortingEntity
 import com.rookie.code.substream.presentation.viewmodel.PostsViewModel
 import java.text.SimpleDateFormat
 import java.util.*
@@ -53,7 +53,7 @@ import java.util.*
 @Composable
 fun PostsScreen(
     subreddit: String,
-    sorting: PostSorting = PostSorting.HOT,
+    sorting: PostSortingEntity = PostSortingEntity.HOT,
     onBack: () -> Unit,
     viewModel: PostsViewModel
 ) {
@@ -109,7 +109,7 @@ fun PostsScreen(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun VideoFeedScreen(
-    posts: List<RedditPost>,
+    posts: List<RedditPostEntity>,
     subreddit: String,
     onBack: () -> Unit,
     viewModel: PostsViewModel,
@@ -277,7 +277,7 @@ private fun NoVideosContent(
 
 @Composable
 private fun FullScreenVideoPlayer(
-    post: RedditPost,
+    post: RedditPostEntity,
     onClose: () -> Unit,
     showControls: Boolean = true,
     isCurrentVideo: Boolean = true,
@@ -377,7 +377,7 @@ private fun FullScreenVideoPlayer(
 @Composable
 private fun VideoPlayer(
     context: Context,
-    post: RedditPost,
+    post: RedditPostEntity,
     isPlaying: Boolean,
     isMuted: Boolean,
     modifier: Modifier = Modifier
@@ -430,7 +430,7 @@ private fun VideoControls(
     onPlayPause: () -> Unit,
     onMuteToggle: () -> Unit,
     onClose: () -> Unit,
-    post: RedditPost
+    post: RedditPostEntity
 ) {
     Column(
         modifier = Modifier
@@ -662,7 +662,7 @@ private fun VideoControls(
 
 
 // Helper functions
-private fun isVideoPost(post: RedditPost): Boolean {
+private fun isVideoPost(post: RedditPostEntity): Boolean {
     return post.isVideo == true || 
            post.media?.redditVideo != null || 
            post.secureMedia?.redditVideo != null ||
@@ -671,7 +671,7 @@ private fun isVideoPost(post: RedditPost): Boolean {
     // Note: YouTube videos are excluded because ExoPlayer can't play them directly
 }
 
-private fun getVideoUrl(post: RedditPost): String? {
+private fun getVideoUrl(post: RedditPostEntity): String? {
     // Try Reddit video first
     post.media?.redditVideo?.fallbackUrl?.let { return it }
     post.secureMedia?.redditVideo?.fallbackUrl?.let { return it }

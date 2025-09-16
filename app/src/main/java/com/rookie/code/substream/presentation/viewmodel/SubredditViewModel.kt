@@ -2,8 +2,11 @@ package com.rookie.code.substream.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.rookie.code.substream.common.constants.StringConstants
 import com.rookie.code.substream.data.model.Subreddit
-import com.rookie.code.substream.domain.repository.SubredditRepository
+import com.rookie.code.substream.data.utils.Resource
+import com.rookie.code.substream.domain.usecase.GetPopularSubredditsUseCase
+import com.rookie.code.substream.domain.usecase.SearchSubredditsUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,7 +25,8 @@ data class SubredditUiState(
 )
 
 class SubredditViewModel(
-    private val subredditRepository: SubredditRepository
+    private val getPopularSubredditsUseCase: GetPopularSubredditsUseCase,
+    private val searchSubredditsUseCase: SearchSubredditsUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SubredditUiState())
@@ -35,14 +39,14 @@ class SubredditViewModel(
     fun loadPopularSubreddits() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
-                isLoading = true, 
+                isLoading = true,
                 error = null,
                 currentAfter = null,
                 canLoadMore = true
             )
-            
-            when (val result = subredditRepository.getPopularSubreddits(limit = 25, after = null)) {
-                is com.rookie.code.substream.data.api.Resource.Success -> {
+
+            when (val result = getPopularSubredditsUseCase(limit = 25, after = null)) {
+                is Resource.Success -> {
                     val (subreddits, nextAfter) = result.data
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
@@ -52,14 +56,14 @@ class SubredditViewModel(
                         canLoadMore = nextAfter != null
                     )
                 }
-                is com.rookie.code.substream.data.api.Resource.Error -> {
+                is Resource.Error -> {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        error = result.exception.message ?: "Failed to load subreddits",
+                        error = result.exception.message ?: SubredditViewModelConstants.FAILED_TO_LOAD_SUBREDDITS,
                         canLoadMore = false
                     )
                 }
-                is com.rookie.code.substream.data.api.Resource.Loading -> {
+                is Resource.Loading -> {
                     _uiState.value = _uiState.value.copy(isLoading = true)
                 }
             }
@@ -81,7 +85,7 @@ class SubredditViewModel(
 
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
-                isLoading = true, 
+                isLoading = true,
                 error = null,
                 searchQuery = query,
                 isSearching = true,
@@ -89,11 +93,11 @@ class SubredditViewModel(
                 currentAfter = null,
                 canLoadMore = true
             )
-            
-            when (val result = subredditRepository.searchSubreddits(query, limit = 25, after = null)) {
-                is com.rookie.code.substream.data.api.Resource.Success -> {
+
+            when (val result = searchSubredditsUseCase(query, limit = 25, after = null)) {
+                is Resource.Success -> {
                     val (subreddits, nextAfter) = result.data
-                    println("SubredditViewModel: Search successful, found ${subreddits.size} subreddits")
+                    println("${SubredditViewModelConstants.LOG_TAG}: ${SubredditViewModelConstants.SEARCH_SUCCESSFUL.replace("{count}", subreddits.size.toString())}")
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         subreddits = subreddits,
@@ -104,16 +108,16 @@ class SubredditViewModel(
                         canLoadMore = nextAfter != null
                     )
                 }
-                is com.rookie.code.substream.data.api.Resource.Error -> {
+                is Resource.Error -> {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        error = result.exception.message ?: "Failed to search subreddits",
+                        error = result.exception.message ?: SubredditViewModelConstants.FAILED_TO_SEARCH_SUBREDDITS,
                         isSearching = false,
                         hasSearched = true,
                         canLoadMore = false
                     )
                 }
-                is com.rookie.code.substream.data.api.Resource.Loading -> {
+                is Resource.Loading -> {
                     _uiState.value = _uiState.value.copy(isLoading = true)
                 }
             }
@@ -128,15 +132,15 @@ class SubredditViewModel(
 
         viewModelScope.launch {
             _uiState.value = currentState.copy(isLoadingMore = true)
-            
+
             val result = if (currentState.searchQuery.isBlank()) {
-                subredditRepository.getPopularSubreddits(limit = 25, after = currentState.currentAfter)
+                getPopularSubredditsUseCase(limit = 25, after = currentState.currentAfter)
             } else {
-                subredditRepository.searchSubreddits(currentState.searchQuery, limit = 25, after = currentState.currentAfter)
+                searchSubredditsUseCase(currentState.searchQuery, limit = 25, after = currentState.currentAfter)
             }
-            
+
             when (result) {
-                is com.rookie.code.substream.data.api.Resource.Success -> {
+                is Resource.Success -> {
                     val (newSubreddits, nextAfter) = result.data
                     _uiState.value = currentState.copy(
                         isLoadingMore = false,
@@ -145,13 +149,13 @@ class SubredditViewModel(
                         canLoadMore = nextAfter != null
                     )
                 }
-                is com.rookie.code.substream.data.api.Resource.Error -> {
+                is Resource.Error -> {
                     _uiState.value = currentState.copy(
                         isLoadingMore = false,
                         canLoadMore = false
                     )
                 }
-                is com.rookie.code.substream.data.api.Resource.Loading -> {
+                is Resource.Loading -> {
                     _uiState.value = currentState.copy(isLoadingMore = true)
                 }
             }

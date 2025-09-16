@@ -1,8 +1,9 @@
-package com.rookie.code.substream.data.api
+package com.rookie.code.substream.data.utils
 
-/**
- * Manages Reddit API tokens using RedditAuthApi
- */
+import com.rookie.code.substream.data.constants.DataConstants
+import com.rookie.code.substream.data.online.RedditAuthApi
+import com.rookie.code.substream.data.online.TokenResponse
+
 class TokenManager(
     private val redditAuthApi: RedditAuthApi
 ) {
@@ -12,8 +13,8 @@ class TokenManager(
      */
     suspend fun refreshAccessToken(): Result<TokenResponse> {
         return try {
-            val refreshToken = SessionManager.getRefreshToken() 
-                ?: return Result.failure(Exception("No refresh token available"))
+            val refreshToken = SessionManager.getRefreshToken()
+                ?: return Result.failure(Exception(DataConstants.ErrorMessages.NO_REFRESH_TOKEN))
             
             val response = redditAuthApi.refreshToken(refreshToken = refreshToken)
             
@@ -39,7 +40,7 @@ class TokenManager(
             if (token != null) {
                 Result.success(token)
             } else {
-                Result.failure(Exception("No access token available"))
+                    Result.failure(Exception(DataConstants.ErrorMessages.NO_ACCESS_TOKEN))
             }
         } else {
             refreshAccessToken().map { it.accessToken }

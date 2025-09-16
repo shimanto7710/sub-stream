@@ -1,17 +1,15 @@
-package com.rookie.code.substream.data.api
+package com.rookie.code.substream.data.utils
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.rookie.code.substream.data.constants.DataConstants
 
-/**
- * Manages Reddit API session tokens using SharedPreferences
- */
-object SessionManager {
+object NetworkSessionManager {
     
-    private const val PREFS_NAME = "reddit_session"
-    private const val KEY_ACCESS_TOKEN = "access_token"
-    private const val KEY_REFRESH_TOKEN = "refresh_token"
-    private const val KEY_TOKEN_EXPIRY = "token_expiry"
+    private const val PREFS_NAME = DataConstants.PrefsKeys.PREFS_NAME
+    private const val KEY_ACCESS_TOKEN = DataConstants.PrefsKeys.KEY_ACCESS_TOKEN
+    private const val KEY_REFRESH_TOKEN = DataConstants.PrefsKeys.KEY_REFRESH_TOKEN
+    private const val KEY_TOKEN_EXPIRY = DataConstants.PrefsKeys.KEY_TOKEN_EXPIRY
     
     private lateinit var prefs: SharedPreferences
     
@@ -24,7 +22,7 @@ object SessionManager {
     }
     
     fun getRefreshToken(): String? {
-        return prefs.getString(KEY_REFRESH_TOKEN, RedditAuthApiImpl.REFRESH_TOKEN)
+        return prefs.getString(KEY_REFRESH_TOKEN, null)
     }
     
     fun getTokenExpiry(): Long {

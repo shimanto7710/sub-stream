@@ -48,9 +48,9 @@ fun AppNavigation(
 
         composable<Route.Posts> {
             val args = it.toRoute<Route.Posts>()
-            val sorting = com.rookie.code.substream.data.model.PostSorting.values()
+            val sorting = com.rookie.code.substream.domain.entity.PostSortingEntity.values()
                 .find { sorting -> sorting.apiValue == args.sorting } 
-                ?: com.rookie.code.substream.data.model.PostSorting.HOT
+                ?: com.rookie.code.substream.domain.entity.PostSortingEntity.HOT
             
             PostsScreen(
                 subreddit = args.subreddit,

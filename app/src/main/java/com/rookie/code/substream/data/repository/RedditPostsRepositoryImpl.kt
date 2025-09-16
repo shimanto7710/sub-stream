@@ -1,58 +1,33 @@
 package com.rookie.code.substream.data.repository
 
-import com.rookie.code.substream.data.api.RedditApi
-import com.rookie.code.substream.data.api.Resource
-import com.rookie.code.substream.data.api.map
-import com.rookie.code.substream.data.model.RedditPost
-import com.rookie.code.substream.data.model.PostSorting
+import com.rookie.code.substream.data.online.RedditApi
+import com.rookie.code.substream.data.utils.Resource
+import com.rookie.code.substream.data.mapper.RedditPostMapper
+import com.rookie.code.substream.domain.entity.PostSortingEntity
+import com.rookie.code.substream.domain.entity.RedditPostEntity
 import com.rookie.code.substream.domain.repository.RedditPostsRepository
 
 class RedditPostsRepositoryImpl(
     private val redditApi: RedditApi
 ) : RedditPostsRepository {
 
-    override suspend fun getSubredditPosts(subreddit: String, limit: Int): Resource<List<RedditPost>> {
-        return redditApi.getSubredditPosts(subreddit, "hot", limit).map { response ->
-            response.data?.children?.mapNotNull { child ->
-                child?.data?.let { postData ->
-                    postData
-                }
-            } ?: emptyList()
+    override suspend fun getSubredditPosts(subreddit: String, sorting: PostSortingEntity, limit: Int, after: String?): Result<Pair<List<RedditPostEntity>, String?>> {
+        return when (val result = redditApi.getSubredditPosts(subreddit, sorting.apiValue, limit, after)) {
+            is Resource.Success -> {
+                val posts = result.data.data?.children?.mapNotNull { child ->
+                    child?.data?.let { postData ->
+                        postData
+                    }
+                } ?: emptyList()
+                val nextAfter = result.data.data?.after
+                Result.success(Pair(RedditPostMapper.toDomainEntities(posts), nextAfter))
+            }
+            is Resource.Error -> {
+                Result.failure(result.exception)
+            }
+            is Resource.Loading -> {
+                Result.failure(Exception("Loading"))
+            }
         }
     }
-
-    override suspend fun getSubredditPosts(subreddit: String, limit: Int, after: String?): Resource<Pair<List<RedditPost>, String?>> {
-        return redditApi.getSubredditPosts(subreddit, "hot", limit, after).map { response ->
-            val posts = response.data?.children?.mapNotNull { child ->
-                child?.data?.let { postData ->
-                    postData
-                }
-            } ?: emptyList()
-            val nextAfter = response.data?.after
-            Pair(posts, nextAfter)
-        }
-    }
-
-    override suspend fun getSubredditPosts(subreddit: String, sorting: PostSorting, limit: Int): Resource<List<RedditPost>> {
-        return redditApi.getSubredditPosts(subreddit, sorting.apiValue, limit).map { response ->
-            response.data?.children?.mapNotNull { child ->
-                child?.data?.let { postData ->
-                    postData
-                }
-            } ?: emptyList()
-        }
-    }
-
-    override suspend fun getSubredditPosts(subreddit: String, sorting: PostSorting, limit: Int, after: String?): Resource<Pair<List<RedditPost>, String?>> {
-        return redditApi.getSubredditPosts(subreddit, sorting.apiValue, limit, after).map { response ->
-            val posts = response.data?.children?.mapNotNull { child ->
-                child?.data?.let { postData ->
-                    postData
-                }
-            } ?: emptyList()
-            val nextAfter = response.data?.after
-            Pair(posts, nextAfter)
-        }
-    }
-
 }

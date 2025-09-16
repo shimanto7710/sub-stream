@@ -1,12 +1,9 @@
 package com.rookie.code.substream.domain.repository
 
-import com.rookie.code.substream.data.api.Resource
-import com.rookie.code.substream.data.model.RedditPost
-import com.rookie.code.substream.data.model.PostSorting
+import com.rookie.code.substream.domain.entity.PostSortingEntity
+import com.rookie.code.substream.domain.entity.RedditPostEntity
+
 
 interface RedditPostsRepository {
-    suspend fun getSubredditPosts(subreddit: String, limit: Int = 25): Resource<List<RedditPost>>
-    suspend fun getSubredditPosts(subreddit: String, limit: Int = 25, after: String?): Resource<Pair<List<RedditPost>, String?>>
-    suspend fun getSubredditPosts(subreddit: String, sorting: PostSorting, limit: Int = 25): Resource<List<RedditPost>>
-    suspend fun getSubredditPosts(subreddit: String, sorting: PostSorting, limit: Int = 25, after: String?): Resource<Pair<List<RedditPost>, String?>>
+    suspend fun getSubredditPosts(subreddit: String, sorting: PostSortingEntity, limit: Int = 25, after: String?): Result<Pair<List<RedditPostEntity>, String?>>
 }

@@ -1,4 +1,4 @@
-package com.rookie.code.substream.data.api
+package com.rookie.code.substream.data.utils
 
 import io.ktor.client.call.body
 import io.ktor.client.statement.HttpResponse

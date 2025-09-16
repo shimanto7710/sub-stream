@@ -1,4 +1,4 @@
-package com.rookie.code.substream.data.api
+package com.rookie.code.substream.data.utils
 
 /**
  * Resource wrapper for API responses
@@ -38,5 +38,16 @@ inline fun <T> Resource<T>.onError(action: (Throwable) -> Unit): Resource<T> {
         action(exception)
     }
     return this
+}
+
+/**
+ * Extension function to map Resource data
+ */
+inline fun <T, R> Resource<T>.map(transform: (T) -> R): Resource<R> {
+    return when (this) {
+        is Resource.Success -> Resource.Success(transform(data))
+        is Resource.Error -> Resource.Error(exception)
+        is Resource.Loading -> Resource.Loading
+    }
 }
 

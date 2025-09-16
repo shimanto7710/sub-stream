@@ -1,15 +1,12 @@
 package com.rookie.code.substream.data.ktor
 
 import android.content.Context
-import com.rookie.code.substream.data.api.ResultRefreshToken
-import com.rookie.code.substream.data.api.SessionManager
-import com.rookie.code.substream.data.api.RedditAuthApi
-import com.rookie.code.substream.data.api.TokenManager
-import com.rookie.code.substream.data.api.RedditAuthApiImpl
+import com.rookie.code.substream.data.utils.SessionManager
+import com.rookie.code.substream.data.online.RedditAuthApi
+import com.rookie.code.substream.data.utils.TokenManager
+import com.rookie.code.substream.data.online.RedditAuthApiImpl
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
-import io.ktor.client.call.body
-import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.auth.Auth
@@ -20,11 +17,7 @@ import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
-import io.ktor.client.request.post
-import io.ktor.client.request.setBody
-import io.ktor.client.statement.HttpResponse
 import io.ktor.http.ContentType
-import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.http.takeFrom
 import io.ktor.serialization.kotlinx.json.json
@@ -35,21 +28,23 @@ import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit
 
-private const val TAG = "KtorClient"
+import com.rookie.code.substream.data.constants.DataConstants
+
+private const val TAG = DataConstants.LogTags.KTOR_CLIENT
 
 object KtorClient {
 
     // API Configuration Constants
     object ApiConfig {
-        const val REQUEST_TIMEOUT = 30_000L // 30 seconds
-        const val CONNECT_TIMEOUT = 10_000L // 10 seconds
-        const val READ_TIMEOUT = 30_000L    // 30 seconds
-        const val USER_AGENT = "SubStream-Android/1.0"
-        const val REDDIT_BASE_URL = "https://oauth.reddit.com"
-        const val REDDIT_AUTH_BASE_URL = "https://www.reddit.com"
-        const val CLIENT_ID = "NwwBZLNAZdQKYF_m5L2yvw"
-        const val CLIENT_SECRET = "mxHR7HyfTxq5aKt9TTewniNzbILsoA"
-        const val REFRESH_TOKEN = "1788215293567-ykLZrL5Yh691N_RRhFGMfPLd05zHXw"
+        const val REQUEST_TIMEOUT = DataConstants.KtorConfig.REQUEST_TIMEOUT
+        const val CONNECT_TIMEOUT = DataConstants.KtorConfig.CONNECT_TIMEOUT
+        const val READ_TIMEOUT = DataConstants.KtorConfig.READ_TIMEOUT
+        const val USER_AGENT = DataConstants.App.USER_AGENT
+        const val REDDIT_BASE_URL = DataConstants.Api.REDDIT_BASE_URL
+        const val REDDIT_AUTH_BASE_URL = DataConstants.Api.REDDIT_AUTH_BASE_URL
+        const val CLIENT_ID = DataConstants.Api.CLIENT_ID
+        const val CLIENT_SECRET = DataConstants.Api.CLIENT_SECRET
+        const val REFRESH_TOKEN = DataConstants.Api.REFRESH_TOKEN
     }
 
     private val json = Json {
@@ -60,10 +55,7 @@ object KtorClient {
 
     private val refreshMutex = Mutex()
 
-    /**
-     * Creates a Reddit API client with automatic token refresh
-     * This is the main client for Reddit API calls
-     */
+
     fun createRedditClientSync(
         context: Context,
         redditAuthApi: RedditAuthApi,
@@ -201,10 +193,7 @@ object KtorClient {
         }
     }
 
-    /**
-     * Creates a simple HTTP client for authentication API calls
-     * This client is used for token refresh operations
-     */
+
     fun createAuthClient(
         context: Context,
         isDebug: Boolean = true
@@ -246,9 +235,7 @@ object KtorClient {
         }
     }
 
-    /**
-     * Common configuration shared by all clients.
-     */
+
     private fun HttpClientConfig<*>.installCommonPlugins() {
         install(ContentNegotiation) { json(json) }
         install(HttpTimeout) {
@@ -257,116 +244,12 @@ object KtorClient {
         }
         install(Logging) {
             logger = object : Logger {
-                override fun log(message: String) = println("🌐 [Ktor] $message")
+                override fun log(message: String) = println(" [Ktor] $message")
             }
             level = LogLevel.ALL
         }
     }
 
-    /**
-     * Refreshes the Reddit access token using the refresh token
-     */
-    suspend fun refreshToken(engine: HttpClientEngine): ResultRefreshToken {
-        log("refreshToken called")
-        val refreshToken = SessionManager.getRefreshToken() ?: return ResultRefreshToken(
-            responseCode = -1,
-            isSuccess = false
-        )
-
-        val refreshClient = createRefreshClient(engine)
-
-        return try {
-            val credentials = "${ApiConfig.CLIENT_ID}:${ApiConfig.CLIENT_SECRET}"
-            val encodedCredentials = android.util.Base64.encodeToString(credentials.toByteArray(), android.util.Base64.DEFAULT).trim()
-
-            val response: HttpResponse = refreshClient.post(
-                "${ApiConfig.REDDIT_AUTH_BASE_URL}/api/v1/access_token"
-            ) {
-                contentType(ContentType.Application.FormUrlEncoded)
-                setBody("grant_type=refresh_token&refresh_token=$refreshToken")
-                headers.append("Authorization", "Basic $encodedCredentials")
-                headers.append("User-Agent", ApiConfig.USER_AGENT)
-            }
-
-            log("refreshToken: $response")
-
-            if (response.status == HttpStatusCode.OK) {
-                try {
-                    val responseText = response.body<String>()
-                    log("refreshToken response text: $responseText")
-                    
-                    // Parse JSON manually
-                    val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
-                    val responseBody = json.decodeFromString<Map<String, kotlinx.serialization.json.JsonElement>>(responseText)
-                    
-                    val newAccessToken = responseBody["access_token"]?.toString()?.trim('"')
-                    val newRefreshToken = responseBody["refresh_token"]?.toString()?.trim('"')
-                    val expiresIn = responseBody["expires_in"]?.toString()?.toIntOrNull() ?: 3600
-
-                log("refreshToken parsed - accessToken: ${newAccessToken?.take(10)}..., refreshToken: ${newRefreshToken?.take(10)}..., expiresIn: $expiresIn")
-
-                if (!newAccessToken.isNullOrBlank()) {
-                    SessionManager.updateSession(newAccessToken, newRefreshToken, expiresIn)
-                    log("refreshToken: Session updated successfully")
-                    ResultRefreshToken(
-                        responseCode = response.status.value,
-                        isSuccess = true
-                    )
-                } else {
-                    log("refreshToken: No access token in response")
-                    ResultRefreshToken(
-                        responseCode = response.status.value,
-                        isSuccess = false
-                    )
-                }
-                } catch (e: Exception) {
-                    log("refreshToken: Error parsing response body: ${e.message}")
-                    e.printStackTrace()
-                    ResultRefreshToken(
-                        responseCode = response.status.value,
-                        isSuccess = false
-                    )
-                }
-            } else {
-                log("refreshToken: Non-200 response: ${response.status}")
-                ResultRefreshToken(
-                    responseCode = response.status.value,
-                    isSuccess = false
-                )
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            ResultRefreshToken(
-                responseCode = -1,
-                isSuccess = false
-            )
-        }
-    }
-
-    /**
-     * Creates a new HttpClient instance for refreshing tokens.
-     * This client is used specifically for token refresh operations.
-     * A lightweight client without Auth plugin to avoid recursion
-     */
-    private fun createRefreshClient(engine: HttpClientEngine): HttpClient {
-        return HttpClient(engine) {
-            installCommonPlugins()
-
-            defaultRequest {
-                contentType(ContentType.Application.FormUrlEncoded)
-                url {
-                    takeFrom(ApiConfig.REDDIT_AUTH_BASE_URL)
-                }
-                headers.append("User-Agent", ApiConfig.USER_AGENT)
-            }
-        }
-    }
-
-    private fun onTokenRefreshFailed(responseCode: Int) {
-        log("onTokenRefreshFailed: $responseCode")
-        // Clear session on refresh failure
-        SessionManager.clearSession()
-    }
 
     fun log(msg: String?) {
         println("$TAG: $msg")

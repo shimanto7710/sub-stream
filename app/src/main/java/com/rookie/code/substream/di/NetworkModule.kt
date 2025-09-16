@@ -1,10 +1,10 @@
 package com.rookie.code.substream.di
 
-import com.rookie.code.substream.data.api.RedditApi
-import com.rookie.code.substream.data.api.RedditAuthApi
-import com.rookie.code.substream.data.api.RedditAuthApiImpl
-import com.rookie.code.substream.data.api.SessionManager
-import com.rookie.code.substream.data.api.TokenManager
+import com.rookie.code.substream.data.online.RedditApi
+import com.rookie.code.substream.data.online.RedditAuthApi
+import com.rookie.code.substream.data.online.RedditAuthApiImpl
+import com.rookie.code.substream.data.utils.SessionManager
+import com.rookie.code.substream.data.utils.TokenManager
 import com.rookie.code.substream.data.repository.SubredditRepositoryImpl
 import com.rookie.code.substream.data.repository.RedditPostsRepositoryImpl
 import com.rookie.code.substream.domain.repository.SubredditRepository

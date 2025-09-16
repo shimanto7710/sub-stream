@@ -2,28 +2,27 @@ package com.rookie.code.substream.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.rookie.code.substream.data.api.Resource
-import com.rookie.code.substream.data.model.RedditPost
-import com.rookie.code.substream.data.model.PostSorting
-import com.rookie.code.substream.domain.repository.RedditPostsRepository
+import com.rookie.code.substream.domain.entity.RedditPostEntity
+import com.rookie.code.substream.domain.entity.PostSortingEntity
+import com.rookie.code.substream.domain.usecase.GetSubredditPostsUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class PostsViewModel(
-    private val redditPostsRepository: RedditPostsRepository
+    private val getSubredditPostsUseCase: GetSubredditPostsUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<PostsUiState>(PostsUiState.Loading)
     val uiState: StateFlow<PostsUiState> = _uiState.asStateFlow()
-    
+
     private var currentAfter: String? = null
     private var isLoadingMore = false
-    private var currentSorting: PostSorting = PostSorting.HOT
+    private var currentSorting: PostSortingEntity = PostSortingEntity.HOT
     private var currentSubreddit: String = ""
 
-    fun loadPosts(subreddit: String, sorting: PostSorting = PostSorting.HOT) {
+    fun loadPosts(subreddit: String, sorting: PostSortingEntity = PostSortingEntity.HOT) {
         viewModelScope.launch {
             println("PostsViewModel: Loading posts for subreddit: $subreddit with sorting: ${sorting.displayName}")
             _uiState.value = PostsUiState.Loading
@@ -32,21 +31,15 @@ class PostsViewModel(
             currentSorting = sorting
             currentSubreddit = subreddit
             
-            when (val result = redditPostsRepository.getSubredditPosts(subreddit, sorting, 25, null)) {
-                is Resource.Success -> {
-                    val (posts, nextAfter) = result.data
-                    println("PostsViewModel: Successfully loaded ${posts.size} posts for subreddit: $subreddit")
-                    _uiState.value = PostsUiState.Success(posts, sorting)
-                    currentAfter = nextAfter
-                }
-                is Resource.Error -> {
-                    println("PostsViewModel: Error loading posts: ${result.exception?.message}")
-                    _uiState.value = PostsUiState.Error(result.exception?.message ?: "Unknown error")
-                }
-                is Resource.Loading -> {
-                    println("PostsViewModel: Still loading...")
-                    _uiState.value = PostsUiState.Loading
-                }
+            val result = getSubredditPostsUseCase(subreddit, sorting, 25, null)
+            if (result.isSuccess) {
+                val (posts, nextAfter) = result.getOrNull() ?: Pair(emptyList(), null)
+                println("PostsViewModel: Successfully loaded ${posts.size} posts for subreddit: $subreddit")
+                _uiState.value = PostsUiState.Success(posts, sorting)
+                currentAfter = nextAfter
+            } else {
+                println("PostsViewModel: Error loading posts: ${result.exceptionOrNull()?.message}")
+                _uiState.value = PostsUiState.Error(result.exceptionOrNull()?.message ?: "Unknown error")
             }
         }
     }
@@ -58,39 +51,28 @@ class PostsViewModel(
             isLoadingMore = true
             println("PostsViewModel: Loading more posts for subreddit: $subreddit with after: $currentAfter")
             
-            when (val result = redditPostsRepository.getSubredditPosts(subreddit, currentSorting, 25, currentAfter)) {
-                is Resource.Success -> {
-                    val (newPosts, nextAfter) = result.data
-                    println("PostsViewModel: Successfully loaded ${newPosts.size} more posts")
-                    
-                    val currentState = _uiState.value
-                    if (currentState is PostsUiState.Success) {
-                        val allPosts = currentState.posts + newPosts
-                        _uiState.value = PostsUiState.Success(allPosts, currentSorting)
-                        currentAfter = nextAfter
-                    }
+            val result = getSubredditPostsUseCase(subreddit, currentSorting, 25, currentAfter)
+            if (result.isSuccess) {
+                val (newPosts, nextAfter) = result.getOrNull() ?: Pair(emptyList(), null)
+                println("PostsViewModel: Successfully loaded ${newPosts.size} more posts")
+
+                val currentState = _uiState.value
+                if (currentState is PostsUiState.Success) {
+                    val allPosts = currentState.posts + newPosts
+                    _uiState.value = PostsUiState.Success(allPosts, currentSorting)
+                    currentAfter = nextAfter
                 }
-                is Resource.Error -> {
-                    println("PostsViewModel: Error loading more posts: ${result.exception?.message}")
-                    // Don't change UI state on pagination error, just log it
-                }
-                is Resource.Loading -> {
-                    println("PostsViewModel: Still loading more posts...")
-                }
+            } else {
+                println("PostsViewModel: Error loading more posts: ${result.exceptionOrNull()?.message}")
+                // Don't change UI state on pagination error, just log it
             }
             isLoadingMore = false
         }
     }
 
-    fun changeSorting(sorting: PostSorting) {
-        if (currentSubreddit.isNotEmpty()) {
-            loadPosts(currentSubreddit, sorting)
-        }
-    }
-
     sealed class PostsUiState {
         object Loading : PostsUiState()
-        data class Success(val posts: List<RedditPost>, val sorting: PostSorting = PostSorting.HOT) : PostsUiState()
+        data class Success(val posts: List<RedditPostEntity>, val sorting: PostSortingEntity = PostSortingEntity.HOT) : PostsUiState()
         data class Error(val message: String) : PostsUiState()
     }
 }

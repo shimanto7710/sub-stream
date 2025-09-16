@@ -5,14 +5,16 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class Subreddit(
+    @SerialName("id")
+    val id: String? = null,
     @SerialName("display_name")
-    val displayName: String,
+    val displayName: String? = null,
     @SerialName("display_name_prefixed")
-    val displayNamePrefixed: String,
+    val displayNamePrefixed: String? = null,
     @SerialName("title")
-    val title: String,
+    val title: String? = null,
     @SerialName("description")
-    val description: String?,
+    val description: String? = null,
     @SerialName("subscribers")
     val subscribers: Int? = null,
     @SerialName("active_user_count")
@@ -22,7 +24,11 @@ data class Subreddit(
     @SerialName("banner_img")
     val bannerUrl: String? = null,
     @SerialName("over18")
-    val isOver18: Boolean? = false,
+    val isNsfw: Boolean? = false,
+    @SerialName("user_is_subscriber")
+    val isSubscribed: Boolean? = null,
+    @SerialName("created_utc")
+    val createdUtc: Double? = null,
     @SerialName("public_description")
     val publicDescription: String? = null
 )

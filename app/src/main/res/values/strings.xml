@@ -1,3 +1,22 @@
 <resources>
+    <!-- App Information -->
     <string name="app_name">SubStream</string>
+    
+    <!-- Home Screen -->
+    <string name="home_title">SubStream</string>
+    <string name="search_placeholder">Search subreddits...</string>
+    <string name="load_more_button">Load More</string>
+    
+    <!-- Error Messages -->
+    <string name="error_something_went_wrong">Something went wrong</string>
+    <string name="error_loading_subreddits">We encountered an issue while loading subreddits. Please try again.</string>
+    
+    <!-- Actions -->
+    <string name="action_retry">Retry</string>
+    <string name="action_dismiss">Dismiss</string>
+    <string name="action_clear_search">Clear Search</string>
+    
+    <!-- Content Descriptions -->
+    <string name="cd_error_icon">Error</string>
+    <string name="cd_sort_icon">Sort</string>
 </resources>

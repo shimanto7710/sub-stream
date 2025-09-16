@@ -17,13 +17,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.rookie.code.substream.R
+import com.rookie.code.substream.common.constants.StringConstants
 import com.rookie.code.substream.data.model.Subreddit
-import com.rookie.code.substream.data.model.PostSorting
+import com.rookie.code.substream.domain.entity.PostSortingEntity
 import com.rookie.code.substream.presentation.viewmodel.SubredditViewModel
 import org.koin.androidx.compose.koinViewModel
 
@@ -31,27 +35,28 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun HomeScreen(
     modifier: Modifier = Modifier,
-    onSubredditClick: (String, PostSorting) -> Unit = { _, _ -> },
+    onSubredditClick: (String, PostSortingEntity) -> Unit = { _, _ -> },
     viewModel: SubredditViewModel = koinViewModel()
 ) {
+    val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var searchQuery by remember { mutableStateOf("") }
     var showSortingMenu by remember { mutableStateOf(false) }
-    var currentSorting by remember { mutableStateOf(PostSorting.HOT) }
+    var currentSorting by remember { mutableStateOf(PostSortingEntity.HOT) }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { 
                     Text(
-                        "SubStream",
+                        stringResource(R.string.home_title),
                         style = MaterialTheme.typography.titleMedium
                     ) 
                 },
                 actions = {
                     Box {
                         IconButton(onClick = { 
-                            println("HomeScreen: Sort button clicked")
+                            println("${HomeScreenConstants.LOG_TAG}: ${HomeScreenConstants.SORT_BUTTON_CLICKED}")
                             showSortingMenu = true 
                         }) {
                             Row(
@@ -66,7 +71,7 @@ fun HomeScreen(
                                 )
                                 Icon(
                                     Icons.Default.MoreVert, 
-                                    contentDescription = "Sort",
+                                    contentDescription = stringResource(R.string.cd_sort_icon),
                                     tint = MaterialTheme.colorScheme.primary
                                 )
                             }
@@ -74,12 +79,12 @@ fun HomeScreen(
                         
                         DropdownMenu(
                             expanded = showSortingMenu,
-                            onDismissRequest = { 
-                                println("HomeScreen: Dropdown dismissed")
-                                showSortingMenu = false 
+                            onDismissRequest = {
+                                println("${HomeScreenConstants.LOG_TAG}: ${HomeScreenConstants.DROPDOWN_DISMISSED}")
+                                showSortingMenu = false
                             }
                         ) {
-                            PostSorting.values().forEach { sorting ->
+                            PostSortingEntity.values().forEach { sorting ->
                                 val isSelected = sorting == currentSorting
                                 DropdownMenuItem(
                                     text = { 
@@ -93,8 +98,8 @@ fun HomeScreen(
                                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                         )
                                     },
-                                    onClick = { 
-                                        println("HomeScreen: Sorting changed to ${sorting.displayName}")
+                                    onClick = {
+                                        println("${HomeScreenConstants.LOG_TAG}: ${HomeScreenConstants.SORTING_CHANGED.replace("{sorting}", sorting.displayName)}")
                                         currentSorting = sorting
                                         showSortingMenu = false
                                     }
@@ -112,14 +117,14 @@ fun HomeScreen(
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp, vertical = 4.dp)
         ) {
-        // Search Bar
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = { 
-                searchQuery = it
-                viewModel.searchSubreddits(it)
-            },
-            placeholder = { Text("Search subreddits...") },
+                    // Search Bar
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = {
+                            searchQuery = it
+                            viewModel.searchSubreddits(it)
+                        },
+                        placeholder = { Text(stringResource(R.string.search_placeholder)) },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
@@ -145,20 +150,20 @@ fun HomeScreen(
                 }
             }
             
-            uiState.error != null -> {
-                println("HomeScreen: Showing error - ${uiState.error}")
-                ErrorContent(
-                    error = uiState.error ?: "Unknown error",
-                    onRetry = { viewModel.refresh() },
-                    onDismiss = { viewModel.clearError() }
-                )
-            }
+                        uiState.error != null -> {
+                            println("${HomeScreenConstants.LOG_TAG}: ${HomeScreenConstants.SHOWING_ERROR.replace("{error}", uiState.error ?: "")}")
+                            ErrorContent(
+                                error = uiState.error ?: HomeScreenConstants.ERROR_UNKNOWN,
+                                onRetry = { viewModel.refresh() },
+                                onDismiss = { viewModel.clearError() }
+                            )
+                        }
             
             uiState.subreddits.isEmpty() && uiState.hasSearched -> {
-                println("HomeScreen: Showing no search results for query: ${uiState.searchQuery}")
+                println("${HomeScreenConstants.LOG_TAG}: ${HomeScreenConstants.SHOWING_NO_SEARCH_RESULTS.replace("{query}", uiState.searchQuery)}")
                 NoSearchResultsContent(
                     searchQuery = uiState.searchQuery,
-                    onClearSearch = { 
+                    onClearSearch = {
                         searchQuery = ""
                         viewModel.searchSubreddits("")
                     }
@@ -166,12 +171,12 @@ fun HomeScreen(
             }
             
             uiState.subreddits.isEmpty() -> {
-                println("HomeScreen: Showing empty content (no search performed)")
+                println("${HomeScreenConstants.LOG_TAG}: ${HomeScreenConstants.SHOWING_EMPTY_CONTENT}")
                 EmptyContent()
             }
-            
+
             else -> {
-                println("HomeScreen: Showing ${uiState.subreddits.size} subreddits")
+                println("${HomeScreenConstants.LOG_TAG}: ${HomeScreenConstants.SHOWING_SUBREDDITS.replace("{count}", uiState.subreddits.size.toString())}")
                 SubredditList(
                     subreddits = uiState.subreddits,
                     onRefresh = { viewModel.refresh() },
@@ -201,7 +206,7 @@ private fun SubredditList(
         items(subreddits) { subreddit ->
             SubredditItem(
                 subreddit = subreddit,
-                onClick = { onSubredditClick(subreddit.displayName) }
+                onClick = { onSubredditClick(subreddit.displayName ?: "") }
             )
         }
         
@@ -231,14 +236,14 @@ private fun SubredditItem(
             modifier = Modifier.padding(16.dp)
         ) {
             Text(
-                text = subreddit.displayNamePrefixed,
+                text = subreddit.displayNamePrefixed ?: "r/${subreddit.displayName}",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
             
-            if (subreddit.title.isNotBlank()) {
+            if (!subreddit.title.isNullOrBlank()) {
                 Text(
-                    text = subreddit.title,
+                    text = subreddit.title ?: "",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -246,7 +251,7 @@ private fun SubredditItem(
             
             if (!subreddit.publicDescription.isNullOrBlank()) {
                 Text(
-                    text = subreddit.publicDescription,
+                    text = subreddit.publicDescription ?: "",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
@@ -311,7 +316,7 @@ private fun ErrorContent(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = "Error",
+                        contentDescription = stringResource(R.string.cd_error_icon),
                         modifier = Modifier.size(40.dp),
                         tint = MaterialTheme.colorScheme.onErrorContainer
                     )
@@ -319,7 +324,7 @@ private fun ErrorContent(
                 
                 // Title
                 Text(
-                    text = "Something went wrong",
+                    text = stringResource(R.string.error_something_went_wrong),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -328,7 +333,7 @@ private fun ErrorContent(
                 
                 // Error message
                 Text(
-                    text = "We encountered an issue while loading subreddits. Please try again.",
+                    text = stringResource(R.string.error_loading_subreddits),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
@@ -360,14 +365,14 @@ private fun ErrorContent(
                         onClick = onRetry,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Try Again")
+                        Text(stringResource(R.string.action_retry))
                     }
                     
                     OutlinedButton(
                         onClick = onDismiss,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Dismiss")
+                        Text(stringResource(R.string.action_dismiss))
                     }
                 }
             }
@@ -452,7 +457,7 @@ private fun NoSearchResultsContent(
                 onClick = onClearSearch,
                 modifier = Modifier.padding(horizontal = 32.dp)
             ) {
-                Text("Clear Search")
+                Text(stringResource(R.string.action_clear_search))
             }
         }
     }
@@ -478,7 +483,7 @@ private fun LoadMoreButton(
                 onClick = onLoadMore,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Load More")
+                Text(stringResource(R.string.load_more_button))
             }
         }
     }
