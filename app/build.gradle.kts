@@ -87,6 +87,9 @@ dependencies {
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
     
+    // Navigation Compose
+    implementation("androidx.navigation:navigation-compose:2.8.4")
+    
     // ExoPlayer
     implementation("androidx.media3:media3-exoplayer:1.2.1")
     implementation("androidx.media3:media3-exoplayer-dash:1.2.1")

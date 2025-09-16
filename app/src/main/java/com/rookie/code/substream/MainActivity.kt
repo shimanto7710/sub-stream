@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
+import com.rookie.code.substream.navigation.AppNavigation
 import com.rookie.code.substream.presentation.screen.HomeScreen
 //import com.rookie.code.substream.presentation.screen.VideoScreen
 import com.rookie.code.substream.presentation.screen.PostsScreen
@@ -27,87 +28,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             SubStreamTheme {
-                var currentScreen by remember { mutableStateOf("home") }
-                var selectedSubreddit by remember { mutableStateOf<String?>(null) }
-
-                Scaffold(
-                    modifier = Modifier.fillMaxSize(),
-                    /*topBar = {
-                        @OptIn(ExperimentalMaterial3Api::class)
-                        TopAppBar(
-                            title = {
-                                Text(
-                                    text = when (currentScreen) {
-                                        "posts" -> "r/$selectedSubreddit"
-                                        "videos" -> "All Videos"
-                                        else -> "SubStream"
-                                    }
-                                )
-                            },
-                            actions = {
-                                if (currentScreen == "posts") {
-                                    TextButton(
-                                        onClick = {
-                                            currentScreen = "home"
-                                            selectedSubreddit = null
-                                        }
-                                    ) {
-                                        Text(
-                                            text = "Back",
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                } else {
-                                    TextButton(
-                                        onClick = {
-                                            println("MainActivity: Button clicked, current screen: $currentScreen")
-                                            currentScreen = if (currentScreen == "home") "videos" else "home"
-                                            println("MainActivity: New screen: $currentScreen")
-                                        }
-                                    ) {
-                                        Text(
-                                            text = if (currentScreen == "home") "Videos" else "Home",
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                }
-                            }
-                        )
-                    }*/
-                ) { innerPadding ->
-                    when (currentScreen) {
-                        "home" -> {
-                            println("MainActivity: Showing HomeScreen")
-                            HomeScreen(
-                                modifier = Modifier.padding(innerPadding),
-                                onSubredditClick = { subreddit ->
-                                    selectedSubreddit = subreddit
-                                    currentScreen = "posts"
-                                    println("MainActivity: Navigating to posts for subreddit: $subreddit")
-                                }
-                            )
-                        }
-                        "videos" -> {
-                            println("MainActivity: Showing VideoScreen")
-                            /*VideoScreen(
-                                modifier = Modifier.padding(innerPadding)
-                            )*/
-                        }
-                        "posts" -> {
-                            selectedSubreddit?.let { subreddit ->
-                                println("MainActivity: Showing PostsScreen for: $subreddit")
-                                PostsScreen(
-                                    subreddit = subreddit,
-                                    onBack = {
-                                        currentScreen = "home"
-                                        selectedSubreddit = null
-                                    },
-                                    viewModel = koinViewModel<PostsViewModel>()
-                                )
-                            }
-                        }
-                    }
-                }
+                AppNavigation()
             }
         }
     }
