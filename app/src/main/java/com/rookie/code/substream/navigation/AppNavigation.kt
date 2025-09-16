@@ -57,8 +57,7 @@ fun AppNavigation(
                 sorting = sorting,
                 onBack = {
                     navController.navigateBack()
-                },
-                viewModel = koinViewModel<PostsViewModel>()
+                }
             )
         }
 

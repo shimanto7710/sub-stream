@@ -34,6 +34,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -46,17 +47,17 @@ import androidx.media3.ui.PlayerView
 import com.rookie.code.substream.domain.entity.RedditPostEntity
 import com.rookie.code.substream.domain.entity.PostSortingEntity
 import com.rookie.code.substream.presentation.viewmodel.PostsViewModel
+import org.koin.androidx.compose.koinViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PostsScreen(
     subreddit: String,
     sorting: PostSortingEntity = PostSortingEntity.HOT,
-    onBack: () -> Unit,
-    viewModel: PostsViewModel
+    onBack: () -> Unit
 ) {
+    val viewModel: PostsViewModel = koinViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(subreddit, sorting) {
@@ -64,6 +65,26 @@ fun PostsScreen(
         viewModel.loadPosts(subreddit, sorting)
     }
 
+    PostsScreenView(
+        subreddit = subreddit,
+        sorting = sorting,
+        onBack = onBack,
+        uiState = uiState,
+        onRetry = { viewModel.loadPosts(subreddit) },
+        onLoadMore = { viewModel.loadMorePosts(subreddit) }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PostsScreenView(
+    subreddit: String,
+    sorting: PostSortingEntity = PostSortingEntity.HOT,
+    onBack: () -> Unit,
+    uiState: PostsViewModel.PostsUiState,
+    onRetry: () -> Unit,
+    onLoadMore: () -> Unit
+) {
     Box(modifier = Modifier.fillMaxSize()) {
         when (uiState) {
             is PostsViewModel.PostsUiState.Loading -> {
@@ -77,7 +98,7 @@ fun PostsScreen(
             is PostsViewModel.PostsUiState.Error -> {
                 ErrorContent(
                     message = (uiState as PostsViewModel.PostsUiState.Error).message,
-                    onRetry = { viewModel.loadPosts(subreddit) },
+                    onRetry = onRetry,
                     onBack = onBack
                 )
             }
@@ -89,7 +110,7 @@ fun PostsScreen(
                 if (videoPosts.isEmpty()) {
                     NoVideosContent(
                         message = "No videos found in r/$subreddit",
-                        onRetry = { viewModel.loadPosts(subreddit) },
+                        onRetry = onRetry,
                         onBack = onBack
                     )
                 } else {
@@ -97,13 +118,12 @@ fun PostsScreen(
                         posts = videoPosts,
                         subreddit = subreddit,
                         onBack = onBack,
-                        viewModel = viewModel
+                        onLoadMore = onLoadMore
                     )
                 }
             }
         }
     }
-
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -112,7 +132,7 @@ private fun VideoFeedScreen(
     posts: List<RedditPostEntity>,
     subreddit: String,
     onBack: () -> Unit,
-    viewModel: PostsViewModel,
+    onLoadMore: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var currentVideoIndex by remember { mutableStateOf(0) }
@@ -121,17 +141,17 @@ private fun VideoFeedScreen(
         initialPage = 0,
         pageCount = { posts.size }
     )
-    
+
     // Sync pager state with current video index
     LaunchedEffect(pagerState.currentPage) {
         currentVideoIndex = pagerState.currentPage
-        
+
         // Load more videos when user reaches near the end (last 3 videos)
         if (currentVideoIndex >= posts.size - 3) {
-            viewModel.loadMorePosts(subreddit)
+            onLoadMore()
         }
     }
-    
+
     Box(modifier = modifier.fillMaxSize()) {
         // Vertical scrolling videos using VerticalPager
         VerticalPager(
@@ -148,8 +168,8 @@ private fun VideoFeedScreen(
                 modifier = Modifier.fillMaxSize()
             )
         }
-        
-        
+
+
         // Swipe instruction hint
         if (currentVideoIndex < posts.size - 1) {
             Box(
@@ -701,40 +721,18 @@ private fun getVideoUrl(post: RedditPostEntity): String? {
     return null
 }
 
-
-private fun convertYouTubeToEmbed(url: String): String? {
-    return try {
-        val videoId = when {
-            url.contains("youtu.be/") -> {
-                url.substringAfter("youtu.be/").substringBefore("?")
-            }
-            url.contains("youtube.com/watch?v=") -> {
-                url.substringAfter("v=").substringBefore("&")
-            }
-            else -> null
-        }
-        
-        videoId?.let { "https://www.youtube.com/embed/$it?autoplay=1&mute=0&controls=1" }
-    } catch (e: Exception) {
-        null
-    }
+// Preview composables
+@Preview(showBackground = true)
+@Composable
+private fun PostsScreenViewLoadingPreview() {
+    PostsScreenView(
+        subreddit = "androiddev",
+        sorting = PostSortingEntity.HOT,
+        onBack = {},
+        uiState = PostsViewModel.PostsUiState.Loading,
+        onRetry = {},
+        onLoadMore = {}
+    )
 }
 
-private fun formatTime(timestamp: Double?): String {
-    if (timestamp == null) return "unknown"
-    
-    val currentTime = System.currentTimeMillis() / 1000.0
-    val diff = currentTime - timestamp
-    
-    return when {
-        diff < 60 -> "${diff.toInt()}s"
-        diff < 3600 -> "${(diff / 60).toInt()}m"
-        diff < 86400 -> "${(diff / 3600).toInt()}h"
-        diff < 2592000 -> "${(diff / 86400).toInt()}d"
-        else -> {
-            val date = Date((timestamp * 1000).toLong())
-            val formatter = SimpleDateFormat("MMM dd", Locale.getDefault())
-            formatter.format(date)
-        }
-    }
-}
+
