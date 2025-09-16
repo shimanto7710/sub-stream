@@ -161,7 +161,7 @@ private fun VideoFeedScreen(
             FullScreenVideoPlayer(
                 post = posts[page],
                 onClose = onBack,
-                showControls = true,
+                showControls = false,
                 isCurrentVideo = page == currentVideoIndex,
                 isMuted = isMuted,
                 onMuteToggle = { isMuted = !isMuted },
@@ -299,7 +299,7 @@ private fun NoVideosContent(
 private fun FullScreenVideoPlayer(
     post: RedditPostEntity,
     onClose: () -> Unit,
-    showControls: Boolean = true,
+    showControls: Boolean = false,
     isCurrentVideo: Boolean = true,
     isMuted: Boolean = false,
     onMuteToggle: () -> Unit = {},
@@ -317,9 +317,12 @@ private fun FullScreenVideoPlayer(
         }
     }
     
-    // Pause video when not current
+    // Pause video when not current and hide controls when video changes
     LaunchedEffect(isCurrentVideo) {
         isPlaying = isCurrentVideo
+        if (isCurrentVideo) {
+            showVideoControls = false // Hide controls when switching to a new video
+        }
     }
     
     Box(
