@@ -16,17 +16,19 @@
 
 ## 🌟 Overview
 
-**SubStream** is a modern Android application that transforms Reddit's video content into a TikTok-like vertical scrolling experience. Built with cutting-edge Android technologies, it showcases advanced mobile development skills including Clean Architecture, Jetpack Compose, and modern Android development practices.
+**SubStream** is a modern Android application that transforms Reddit's video content into a TikTok-like vertical scrolling experience using the **Reddit API** and **ExoPlayer** for seamless video playback. Built with cutting-edge Android technologies, it showcases advanced mobile development skills including Clean Architecture, Jetpack Compose, and modern Android development practices.
 
 ### 🎯 Key Features
 
-- **🎬 Vertical Video Feed** - TikTok-style scrolling through Reddit videos
-- **🔍 Smart Search** - Find subreddits with real-time search functionality
+- **🎬 Vertical Video Feed** - TikTok-style scrolling through Reddit videos using **ExoPlayer**
+- **🔍 Smart Search** - Find subreddits with real-time search via **Reddit API**
 - **📊 Multiple Sorting Options** - Hot, New, Top, and Rising post sorting
 - **🎵 Audio Controls** - Global mute/unmute with visual feedback
 - **📱 Modern UI/UX** - Material Design 3 with smooth animations
 - **🔄 Infinite Scrolling** - Seamless pagination for endless content
 - **⚡ Offline Support** - Robust error handling and retry mechanisms
+- **🌐 Reddit API Integration** - OAuth authentication and data fetching
+- **🎥 ExoPlayer Video Streaming** - Advanced video playback with custom controls
 
 ---
 
@@ -115,7 +117,13 @@ This project demonstrates **Clean Architecture** principles with clear separatio
 
 ### 🔑 API Configuration
 
-The app uses Reddit's OAuth API. No additional setup required - API credentials are included for demonstration purposes.
+The app uses **Reddit's OAuth API** for authentication and data fetching, combined with **ExoPlayer** for video streaming. No additional setup required - API credentials are included for demonstration purposes.
+
+**Key API Features:**
+- **Reddit OAuth 2.0** authentication
+- **Subreddit data fetching** (popular, search, posts)
+- **Video URL extraction** from Reddit posts
+- **ExoPlayer streaming** for multiple video formats
 
 ---
 
@@ -161,16 +169,18 @@ The app uses Reddit's OAuth API. No additional setup required - API credentials 
 - **Compose state** for local UI state
 
 ### 🌐 Network Layer
-- **Ktor HTTP client** with authentication
-- **Retrofit-style** API interface
+- **Reddit API integration** with OAuth authentication
+- **Ktor HTTP client** for API communication
+- **Token management** for secure authentication
 - **Error handling** and retry mechanisms
-- **Token management** for OAuth
 
 ### 🎬 Video Features
-- **ExoPlayer integration** for video playback
+- **ExoPlayer integration** for Reddit video playback
 - **Custom video controls** with play/pause
 - **Global mute/unmute** functionality
 - **Vertical scrolling** video feed
+- **Multiple video format** support (MP4, WebM, HLS, DASH)
+- **Reddit video URL extraction** and streaming
 
 ---
 
@@ -240,12 +250,14 @@ This project showcases advanced Android development skills including:
 
 - **Modern Android Development** with Jetpack Compose
 - **Clean Architecture** implementation
-- **API Integration** with Reddit OAuth
-- **Video Streaming** with ExoPlayer
+- **Reddit API Integration** with OAuth authentication
+- **ExoPlayer Video Streaming** for Reddit video content
 - **State Management** with StateFlow and ViewModels
 - **Dependency Injection** with Koin
 - **Network Layer** with Ktor
 - **UI/UX Design** with Material Design 3
+- **Video URL Extraction** from Reddit posts
+- **Custom Video Controls** and playback management
 
 ---
 
